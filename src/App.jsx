@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useVault } from './context/VaultContext';
 import LockScreen from './components/LockScreen';
 import Header from './components/Header';
@@ -10,6 +10,7 @@ import ManualBalanceModal from './components/ManualBalanceModal';
 import ProtectedTrashModal from './components/ProtectedTrashModal';
 import SecurityAuditModal from './components/SecurityAuditModal';
 import SettingsBackupModal from './components/SettingsBackupModal';
+import DeadpoolGreeting from './components/DeadpoolGreeting';
 import { ShieldCheck, ReceiptText, HandCoins } from 'lucide-react';
 
 export default function App() {
@@ -23,6 +24,16 @@ export default function App() {
   const [showTrash, setShowTrash] = useState(false);
   const [showAudit, setShowAudit] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showDeadpoolWelcome, setShowDeadpoolWelcome] = useState(false);
+
+  // Detectar cuando el usuario acaba de desbloquear e ingresar a la bóveda
+  const prevLockedRef = useRef(true);
+  useEffect(() => {
+    if (prevLockedRef.current === true && isLocked === false && isSetupDone) {
+      setShowDeadpoolWelcome(true);
+    }
+    prevLockedRef.current = isLocked;
+  }, [isLocked, isSetupDone]);
 
   // Pantalla de carga mientras se inicializa el motor criptográfico
   if (!isInitialized) {
@@ -44,12 +55,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-[#030712] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
-      {/* Cabecera de Seguridad */}
+      {/* Cabecera de Seguridad con iconos vivos */}
       <Header
         onOpenTrash={() => setShowTrash(true)}
         onOpenAudit={() => setShowAudit(true)}
         onOpenSettings={() => setShowSettings(true)}
         onOpenManualBalance={() => setShowManualBalance(true)}
+        onOpenDeadpool={() => setShowDeadpoolWelcome(true)}
       />
 
       {/* Contenedor Principal Adaptable a Celular */}
@@ -65,7 +77,7 @@ export default function App() {
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <ReceiptText className="w-5 h-5" />
+            <ReceiptText className="w-5 h-5 text-cyan-300" />
             <span>Movimientos</span>
           </button>
 
@@ -109,6 +121,12 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* Animación del Billete de Dólar de Deadpool (con el Deadpool de la 3ra imagen dentro) al ingresar */}
+      <DeadpoolGreeting
+        isOpen={showDeadpoolWelcome}
+        onClose={() => setShowDeadpoolWelcome(false)}
+      />
 
       {/* Modales */}
       <ManualBalanceModal
