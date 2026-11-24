@@ -1,43 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useVault } from '../context/VaultContext';
-import { PRESET_PHRASES, CATEGORIES } from '../utils/presetPhrases';
+import { CUSTOM_CATEGORIES, PRESET_PHRASES, normalizeText } from '../utils/presetPhrases';
 import {
   ArrowDownCircle,
   ArrowUpCircle,
   Check,
   Sparkles,
   Lock,
-  Utensils,
-  Car,
-  Zap,
-  ShoppingBag,
-  HeartPulse,
-  Film,
-  GraduationCap,
-  HelpCircle,
-  Briefcase,
-  Laptop,
-  Gift,
-  Coins,
-  Receipt,
-  Tag
+  Clock,
+  ChevronDown
 } from 'lucide-react';
-
-const CATEGORY_ICONS = {
-  comida: Utensils,
-  transporte: Car,
-  servicios: Zap,
-  compras: ShoppingBag,
-  salud: HeartPulse,
-  ocio: Film,
-  educacion: GraduationCap,
-  otros: HelpCircle,
-  sueldo: Briefcase,
-  freelance: Laptop,
-  regalo: Gift,
-  cobro: Receipt,
-  venta: Tag
-};
 
 export default function TransactionForm() {
   const { addTransaction, settings, learnedPhrases } = useVault();
@@ -45,11 +17,12 @@ export default function TransactionForm() {
   const [type, setType] = useState('gasto'); // 'gasto' o 'ingreso'
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('comida');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [notes, setNotes] = useState('');
+  const [category, setCategory] = useState(CUSTOM_CATEGORIES[0].label);
 
-  // Estados de autocompletado inteligente predictivo
+  // Estados de fecha y hora automática
+  const [currentDateTimeStr, setCurrentDateTimeStr] = useState('');
+
+  // Estados de autocompletado inteligente adaptativo
   const [suggestions, setSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -59,27 +32,53 @@ export default function TransactionForm() {
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
 
-  // Al cambiar entre gasto e ingreso, reajustar categoría por defecto
+  // Reloj en vivo para mostrar la fecha y hora fija actual
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const datePart = now.toLocaleDateString('es-PE', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+      const timePart = now.toLocaleTimeString('es-PE', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      setCurrentDateTimeStr(`${datePart} • ${timePart}`);
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Al cambiar entre gasto e ingreso, reajustar categoría por defecto apropiada
   useEffect(() => {
     if (type === 'gasto') {
-      setCategory('comida');
+      setCategory('Algo para picar');
     } else {
-      setCategory('sueldo');
+      setCategory('Trabajo');
     }
   }, [type]);
 
-  // Lista combinada de frases: frases predeterminadas + frases que el usuario ha usado
+  // Obtener todas las frases disponibles: aprendidas del usuario primero, luego presets
   const getAllPhrases = () => {
-    const defaultList = PRESET_PHRASES[type] || [];
+    // 1. Frases aprendidas del propio usuario (máxima prioridad)
     const customUserList = learnedPhrases
       .filter(p => p.type === type)
       .sort((a, b) => (b.count || 0) - (a.count || 0))
       .map(p => p.text);
 
-    // Unir sin duplicados (case-insensitive)
+    // 2. Frases predeterminadas
+    const defaultList = PRESET_PHRASES[type] || [];
+
+    // Unir sin duplicados ignorando tildes y mayúsculas
     const combined = [...customUserList];
     defaultList.forEach(item => {
-      if (!combined.some(c => c.toLowerCase() === item.toLowerCase())) {
+      const normItem = normalizeText(item);
+      if (!combined.some(c => normalizeText(c) === normItem)) {
         combined.push(item);
       }
     });
@@ -87,16 +86,20 @@ export default function TransactionForm() {
     return combined;
   };
 
-  // Filtrado reactivo en tiempo real mientras el usuario escribe
+  // Filtrado reactivo en tiempo real con soporte total de tildes/sin tildes
   const handleDescriptionChange = (e) => {
     const val = e.target.value;
     setDescription(val);
 
     if (val.trim().length > 0) {
+      const normInput = normalizeText(val);
       const all = getAllPhrases();
-      const filtered = all.filter(p =>
-        p.toLowerCase().includes(val.toLowerCase())
-      ).slice(0, 7); // Mostrar hasta 7 sugerencias relevantes
+
+      // Buscar coincidencias ignorando tildes y mayúsculas
+      const filtered = all.filter(p => {
+        const normP = normalizeText(p);
+        return normP.includes(normInput);
+      }).slice(0, 8); // Mostrar hasta 8 sugerencias
 
       setSuggestions(filtered);
       setShowDropdown(filtered.length > 0);
@@ -111,36 +114,40 @@ export default function TransactionForm() {
     setDescription(phrase);
     setShowDropdown(false);
 
-    // Inferir categoría automática según la frase seleccionada
-    const lower = phrase.toLowerCase();
-    if (type === 'gasto') {
-      if (lower.includes('alfajor') || lower.includes('almuerzo') || lower.includes('desayuno') || lower.includes('comida') || lower.includes('mercado') || lower.includes('pan') || lower.includes('cena')) {
-        setCategory('comida');
-      } else if (lower.includes('bus') || lower.includes('taxi') || lower.includes('metro') || lower.includes('gasolina') || lower.includes('pasaje')) {
-        setCategory('transporte');
-      } else if (lower.includes('luz') || lower.includes('agua') || lower.includes('recarga') || lower.includes('internet') || lower.includes('gas')) {
-        setCategory('servicios');
-      } else if (lower.includes('farmacia') || lower.includes('medico') || lower.includes('pastillas')) {
-        setCategory('salud');
-      } else if (lower.includes('amigos') || lower.includes('cine') || lower.includes('streaming')) {
-        setCategory('ocio');
-      }
-    } else {
-      if (lower.includes('sueldo') || lower.includes('salario') || lower.includes('quincena')) {
-        setCategory('sueldo');
-      } else if (lower.includes('propina') || lower.includes('dieron') || lower.includes('regalo')) {
-        setCategory('regalo');
-      } else if (lower.includes('freelance') || lower.includes('extra')) {
-        setCategory('freelance');
-      } else if (lower.includes('deuda') || lower.includes('debían')) {
-        setCategory('cobro');
-      } else if (lower.includes('venta')) {
-        setCategory('venta');
-      }
+    // Detección automática inteligente de categoría según la frase
+    const norm = normalizeText(phrase);
+    if (norm.includes('picar') || norm.includes('alfajor') || norm.includes('galleta') || norm.includes('snack') || norm.includes('papas')) {
+      setCategory('Algo para picar');
+    } else if (norm.includes('pasaje') || norm.includes('micro') || norm.includes('taxi') || norm.includes('bus') || norm.includes('metro')) {
+      setCategory('Pasaje');
+    } else if (norm.includes('refrezco') || norm.includes('refresco') || norm.includes('gaseosa') || norm.includes('agua') || norm.includes('jugo')) {
+      setCategory('Refrezcos');
+    } else if (norm.includes('almuerzo') || norm.includes('comida') || norm.includes('desayuno') || norm.includes('cena') || norm.includes('menu')) {
+      setCategory('Comida');
+    } else if (norm.includes('universidad') || norm.includes('estudio') || norm.includes('libro') || norm.includes('copia')) {
+      setCategory('Estudios o universidad');
+    } else if (norm.includes('trabajo') || norm.includes('sueldo') || norm.includes('quincena') || norm.includes('salario')) {
+      setCategory('Trabajo');
+    } else if (norm.includes('juego') || norm.includes('recarga') || norm.includes('play')) {
+      setCategory('Juegos');
+    } else if (norm.includes('salida') || norm.includes('amigos') || norm.includes('paseo')) {
+      setCategory('Salidas');
+    } else if (norm.includes('mercado') || norm.includes('verdura') || norm.includes('carne') || norm.includes('abarrote')) {
+      setCategory('Compras de mercado');
+    } else if (norm.includes('trago') || norm.includes('cerveza') || norm.includes('chela') || norm.includes('botella')) {
+      setCategory('Trago');
+    } else if (norm.includes('regalo') || norm.includes('propina') || norm.includes('cumple')) {
+      setCategory('Regalos');
+    } else if (norm.includes('veterinaria') || norm.includes('perro') || norm.includes('gato') || norm.includes('mascota')) {
+      setCategory('Veterinaria');
+    } else if (norm.includes('hospital') || norm.includes('medico') || norm.includes('farmacia') || norm.includes('pastilla')) {
+      setCategory('Hospital');
+    } else if (norm.includes('apoyo') || norm.includes('prestamo') || norm.includes('preste') || norm.includes('ayuda')) {
+      setCategory('Apoyos');
     }
   };
 
-  // Cerrar dropdown si se hace click fuera
+  // Cerrar dropdown al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
@@ -164,92 +171,126 @@ export default function TransactionForm() {
     }
 
     if (!description.trim()) {
-      setErrorMsg('Por favor especifica el motivo o por qué del dinero');
+      setErrorMsg('Por favor escribe el motivo o por qué del dinero');
       return;
     }
 
     setSaving(true);
     try {
+      // Fecha y hora actual inmutable
+      const now = new Date();
+      const dateFormatted = now.toLocaleDateString('es-PE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      const timeFormatted = now.toLocaleTimeString('es-PE', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+
       await addTransaction({
         type,
         amount,
         category,
-        description,
-        date,
-        notes
+        description: description.trim(),
+        date: `${dateFormatted} • ${timeFormatted}`,
+        notes: ''
       });
 
       // Animación de éxito
       setSuccessAnim(true);
-      setTimeout(() => setSuccessAnim(false), 2000);
+      setTimeout(() => setSuccessAnim(false), 2200);
 
-      // Limpiar formulario
+      // Limpiar formulario para el siguiente registro
       setAmount('');
       setDescription('');
-      setNotes('');
       setShowDropdown(false);
     } catch (err) {
-      setErrorMsg(err.message || 'Error al registrar');
+      setErrorMsg(err.message || 'Error al registrar el movimiento');
     } finally {
       setSaving(false);
     }
   };
 
-  const currentCategories = CATEGORIES[type] || [];
   const quickChips = getAllPhrases().slice(0, 4);
 
   return (
-    <div className="vault-card rounded-2xl p-5 shadow-xl">
-      {/* Selector de Tipo: Salida (Gasto) vs Ingreso */}
-      <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950/80 rounded-xl border border-slate-800 mb-4">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+      {/* Selector Principal: Salida vs Ingreso con letras grandes y claras */}
+      <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800 mb-4">
         <button
           type="button"
           onClick={() => setType('gasto')}
-          className={`py-2.5 px-3 rounded-lg text-xs font-bold font-mono uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+          className={`py-3 px-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${
             type === 'gasto'
-              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-sm'
+              : 'text-slate-400 hover:text-white'
           }`}
         >
-          <ArrowDownCircle className="w-4 h-4 text-rose-400" />
+          <ArrowDownCircle className="w-5 h-5 text-rose-400" />
           Registrar Salida (Gasto)
         </button>
 
         <button
           type="button"
           onClick={() => setType('ingreso')}
-          className={`py-2.5 px-3 rounded-lg text-xs font-bold font-mono uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+          className={`py-3 px-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${
             type === 'ingreso'
-              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-sm'
+              : 'text-slate-400 hover:text-white'
           }`}
         >
-          <ArrowUpCircle className="w-4 h-4 text-emerald-400" />
+          <ArrowUpCircle className="w-5 h-5 text-emerald-400" />
           Registrar Ingreso
         </button>
       </div>
 
       {errorMsg && (
-        <div className="mb-4 p-3 bg-rose-950/50 border border-rose-500/30 rounded-xl text-xs text-rose-300">
+        <div className="mb-4 p-3 bg-rose-950/70 border border-rose-500/40 rounded-xl text-xs sm:text-sm text-rose-300">
           {errorMsg}
         </div>
       )}
 
       {successAnim && (
-        <div className="mb-4 p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-xl text-xs text-emerald-300 flex items-center gap-2">
-          <Check className="w-4 h-4 text-emerald-400" />
-          Movimiento cifrado y sellado con SHA-256 correctamente.
+        <div className="mb-4 p-3.5 bg-emerald-950/70 border border-emerald-500/50 rounded-xl text-sm text-emerald-300 flex items-center gap-2.5">
+          <Check className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+          <span>¡Movimiento registrado con éxito! Quedó sellado con su fecha y hora fija.</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Campo Monto */}
+        {/* 1. SELECCIÓN DE CATEGORÍA */}
         <div>
-          <label className="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
-            Monto ({settings.currency || 'S/.'})
+          <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-2">
+            Categoría
           </label>
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-mono font-bold text-slate-400">
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white font-medium text-base focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+            >
+              {CUSTOM_CATEGORIES.map(cat => (
+                <option key={cat.id} value={cat.label} className="bg-slate-900 text-white py-2">
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+              <ChevronDown className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        {/* 2. CAMPO MONTO */}
+        <div>
+          <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-2">
+            ¿Cuánto dinero es? ({settings.currency || 'S/.'})
+          </label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-slate-400">
               {settings.currency || 'S/.'}
             </span>
             <input
@@ -260,20 +301,22 @@ export default function TransactionForm() {
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full bg-slate-950/90 border border-slate-700/80 rounded-xl pl-12 pr-4 py-3 text-2xl font-bold font-mono text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-12 pr-4 py-3 text-2xl font-bold text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
               required
             />
           </div>
         </div>
 
-        {/* Campo 'El Por Qué' (Descripción con autocompletado predictivo inteligente) */}
+        {/* 3. CAMPO MOTIVO (EL POR QUÉ) CON APRENDIZAJE Y AUTOCOMPLETADO */}
         <div className="relative">
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs font-medium text-slate-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              El Por Qué (Motivo / Detalle)
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              Motivo (El por qué)
             </label>
-            <span className="text-[10px] text-slate-400 font-mono">Autocompletado predictivo</span>
+            <span className="text-[11px] text-indigo-400 bg-indigo-950/60 px-2 py-0.5 rounded-full border border-indigo-800/40">
+              Aprende de tu forma de escribir
+            </span>
           </div>
 
           <input
@@ -288,33 +331,33 @@ export default function TransactionForm() {
             }}
             placeholder={
               type === 'gasto'
-                ? 'Ej: "Compré un alfajor en la tienda", "Pasaje de bus"'
-                : 'Ej: "Pago de sueldo", "Dinero que me dieron"'
+                ? 'Escribe el motivo (ej: "compre un alfajor", "pasaje", etc.)'
+                : 'Escribe el motivo (ej: "sueldo", "plata que me dieron", etc.)'
             }
-            className="w-full bg-slate-950/90 border border-slate-700/80 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm"
+            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-sm sm:text-base font-normal"
             required
             autoComplete="off"
           />
 
-          {/* Menú desplegable flotante de predicción mientras escribe */}
+          {/* Menú flotante de opciones inteligentes mientras escribe */}
           {showDropdown && suggestions.length > 0 && (
             <div
               ref={dropdownRef}
-              className="absolute left-0 right-0 top-full mt-1.5 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-40 overflow-hidden divide-y divide-slate-800"
+              className="absolute left-0 right-0 top-full mt-1.5 bg-slate-950 border border-slate-700 rounded-xl shadow-2xl z-40 overflow-hidden divide-y divide-slate-800 max-h-60 overflow-y-auto"
             >
-              <div className="px-3 py-1.5 bg-slate-950/90 text-[10px] uppercase font-mono text-indigo-300 flex items-center justify-between">
-                <span>Sugerencias rápidas</span>
-                <span>Toca para completar</span>
+              <div className="px-3.5 py-2 bg-slate-900 text-xs font-semibold text-indigo-300 flex items-center justify-between">
+                <span>Opciones para terminar tu frase rápido</span>
+                <span className="text-[11px] text-slate-400">Toca para escoger</span>
               </div>
               {suggestions.map((phrase, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => handleSelectSuggestion(phrase)}
-                  className="w-full px-4 py-2.5 text-left text-xs sm:text-sm text-slate-200 hover:bg-indigo-600/20 hover:text-white flex items-center justify-between group transition-colors"
+                  className="w-full px-4 py-3 text-left text-sm text-slate-100 hover:bg-indigo-600/25 hover:text-white flex items-center justify-between transition-colors"
                 >
-                  <span className="truncate">{phrase}</span>
-                  <span className="text-[10px] text-slate-500 group-hover:text-indigo-400 font-mono ml-2">
+                  <span className="truncate font-medium">{phrase}</span>
+                  <span className="text-xs text-indigo-400 font-semibold ml-2 flex-shrink-0">
                     Completar ↵
                   </span>
                 </button>
@@ -322,68 +365,38 @@ export default function TransactionForm() {
             </div>
           )}
 
-          {/* Sugerencias Rápidas en chips clicables (para no tener que escribir todo) */}
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <span className="text-[10px] text-slate-400 font-mono mr-1 self-center">Opciones rápidas:</span>
+          {/* Opciones rápidas para pulsar directamente */}
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            <span className="text-xs text-slate-400 self-center font-medium">Opciones:</span>
             {quickChips.map((chip, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => handleSelectSuggestion(chip)}
-                className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-indigo-950 text-slate-300 hover:text-indigo-300 border border-slate-800 hover:border-indigo-600/50 transition-all flex items-center gap-1"
+                className="text-xs px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-indigo-900 text-slate-300 hover:text-white border border-slate-800 hover:border-indigo-500 transition-all"
               >
-                <span>+</span>
-                <span className="truncate max-w-[170px]">{chip}</span>
+                + {chip}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Categoría y Fecha */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Categoría con iconos */}
-          <div>
-            <label className="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
-              Categoría
-            </label>
-            <div className="relative">
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-slate-950/90 border border-slate-700/80 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 text-sm appearance-none"
-              >
-                {currentCategories.map(cat => (
-                  <option key={cat.id} value={cat.id} className="bg-slate-900 text-white">
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                ▼
-              </div>
-            </div>
+        {/* 4. FECHA Y HORA ACTUAL: AUTOMÁTICA E INMUTABLE */}
+        <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs sm:text-sm">
+          <div className="flex items-center gap-2 text-slate-300">
+            <Clock className="w-4 h-4 text-emerald-400" />
+            <span>Fecha y hora de registro:</span>
           </div>
-
-          {/* Fecha */}
-          <div>
-            <label className="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
-              Fecha
-            </label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-slate-950/90 border border-slate-700/80 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 text-sm"
-              required
-            />
+          <div className="font-semibold text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded-md border border-emerald-500/30">
+            {currentDateTimeStr || 'Actual automática'} (Fija)
           </div>
         </div>
 
-        {/* Botón de Envío con Cifrado Inmediato */}
+        {/* BOTÓN REGISTRAR */}
         <button
           type="submit"
           disabled={saving}
-          className={`w-full py-3.5 px-4 rounded-xl font-bold font-mono tracking-wide text-white transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 shadow-lg ${
+          className={`w-full py-3.5 px-4 rounded-xl font-bold text-base text-white transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 shadow-lg ${
             type === 'gasto'
               ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 shadow-rose-950/40'
               : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-950/40'
@@ -394,7 +407,7 @@ export default function TransactionForm() {
           ) : (
             <>
               <Lock className="w-4 h-4" />
-              <span>{type === 'gasto' ? 'Cifrar y Registrar Salida' : 'Cifrar y Registrar Ingreso'}</span>
+              <span>{type === 'gasto' ? 'Registrar Salida' : 'Registrar Ingreso'}</span>
             </>
           )}
         </button>
