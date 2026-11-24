@@ -173,30 +173,30 @@ export default function App() {
       {/* Contenedor Principal Adaptable a Celular */}
       <main className="flex-1 max-w-2xl w-full mx-auto px-3.5 sm:px-4 py-4 space-y-4 pb-20">
         {/* Selector Principal de Vista: Movimientos vs Préstamos y Deudas */}
-        <div className="grid grid-cols-2 gap-2 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+        <div className="grid grid-cols-2 gap-2 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
           <button
             type="button"
             onClick={() => setCurrentSection('movimientos')}
-            className={`py-3 px-3 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all ${
+            className={`py-3 px-3 rounded-xl font-bold text-xs sm:text-base flex items-center justify-center gap-2 transition-all whitespace-nowrap ${
               currentSection === 'movimientos'
                 ? 'bg-indigo-600 text-white shadow-lg'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <ReceiptText className="w-5 h-5 text-cyan-300" />
+            <ReceiptText className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-300 flex-shrink-0" />
             <span>Movimientos</span>
           </button>
 
           <button
             type="button"
             onClick={() => setCurrentSection('prestamos')}
-            className={`py-3 px-3 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all relative ${
+            className={`py-3 px-3 rounded-xl font-bold text-xs sm:text-base flex items-center justify-center gap-2 transition-all relative whitespace-nowrap ${
               currentSection === 'prestamos'
                 ? 'bg-indigo-600 text-white shadow-lg'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <HandCoins className="w-5 h-5 text-amber-300" />
+            <HandCoins className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 flex-shrink-0" />
             <span>Préstamos / Deudas</span>
             {pendingLoansCount > 0 && (
               <span className="w-5 h-5 bg-amber-500 text-slate-950 text-xs font-black rounded-full flex items-center justify-center">
