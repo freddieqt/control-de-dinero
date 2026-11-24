@@ -344,7 +344,7 @@ export function VaultProvider({ children }) {
   };
 
   // 6. Agregar Movimiento (Gasto o Ingreso)
-  const addTransaction = async ({ type, amount, category, description, date, notes = '' }) => {
+  const addTransaction = async ({ type, amount, category, paymentMethod = 'Yape', description, date, notes = '' }) => {
     if (!cryptoKey || isLocked) throw new Error("La bóveda está bloqueada");
 
     const numAmount = parseFloat(amount);
@@ -353,7 +353,7 @@ export function VaultProvider({ children }) {
     }
 
     if (!description || description.trim().length === 0) {
-      throw new Error("Debes especificar el motivo o por qué del movimiento.");
+      throw new Error("Debes escribir el motivo del movimiento.");
     }
 
     const device = currentDevice || { id: 'master_device' };
@@ -368,7 +368,8 @@ export function VaultProvider({ children }) {
       id,
       type, // 'gasto' o 'ingreso'
       amount: numAmount,
-      category: category || (type === 'gasto' ? 'otros' : 'otros'),
+      category: category || (type === 'gasto' ? 'Algo para picar' : 'Trabajo'),
+      paymentMethod: paymentMethod || 'Yape',
       description: description.trim(),
       date: date || new Date().toISOString().split('T')[0],
       notes: notes.trim(),

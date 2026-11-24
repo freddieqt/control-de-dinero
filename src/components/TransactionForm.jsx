@@ -1,14 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useVault } from '../context/VaultContext';
-import { CUSTOM_CATEGORIES, PRESET_PHRASES, normalizeText } from '../utils/presetPhrases';
+import {
+  EXPENSE_CATEGORIES,
+  INCOME_CATEGORIES,
+  PAYMENT_METHODS,
+  PRESET_PHRASES,
+  normalizeText
+} from '../utils/presetPhrases';
 import {
   ArrowDownCircle,
   ArrowUpCircle,
   Check,
-  Sparkles,
   Lock,
   Clock,
-  ChevronDown
+  ChevronDown,
+  CreditCard
 } from 'lucide-react';
 
 export default function TransactionForm() {
@@ -16,13 +22,14 @@ export default function TransactionForm() {
 
   const [type, setType] = useState('gasto'); // 'gasto' o 'ingreso'
   const [amount, setAmount] = useState('');
+  const [category, setCategory] = useState(EXPENSE_CATEGORIES[0]);
+  const [paymentMethod, setPaymentMethod] = useState('Yape');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState(CUSTOM_CATEGORIES[0].label);
 
-  // Estados de fecha y hora automática
+  // Fecha y hora en vivo
   const [currentDateTimeStr, setCurrentDateTimeStr] = useState('');
 
-  // Estados de autocompletado inteligente adaptativo
+  // Autocompletado inteligente
   const [suggestions, setSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -32,7 +39,7 @@ export default function TransactionForm() {
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
 
-  // Reloj en vivo para mostrar la fecha y hora fija actual
+  // Reloj en vivo
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -54,27 +61,24 @@ export default function TransactionForm() {
     return () => clearInterval(interval);
   }, []);
 
-  // Al cambiar entre gasto e ingreso, reajustar categoría por defecto apropiada
+  // Al alternar entre gasto e ingreso, actualizar lista de categorías correspondientes
   useEffect(() => {
     if (type === 'gasto') {
-      setCategory('Algo para picar');
+      setCategory(EXPENSE_CATEGORIES[0]);
     } else {
-      setCategory('Trabajo');
+      setCategory(INCOME_CATEGORIES[0]);
     }
   }, [type]);
 
-  // Obtener todas las frases disponibles: aprendidas del usuario primero, luego presets
+  // Obtener todas las frases disponibles (las del usuario tienen máxima prioridad)
   const getAllPhrases = () => {
-    // 1. Frases aprendidas del propio usuario (máxima prioridad)
     const customUserList = learnedPhrases
       .filter(p => p.type === type)
       .sort((a, b) => (b.count || 0) - (a.count || 0))
       .map(p => p.text);
 
-    // 2. Frases predeterminadas
     const defaultList = PRESET_PHRASES[type] || [];
 
-    // Unir sin duplicados ignorando tildes y mayúsculas
     const combined = [...customUserList];
     defaultList.forEach(item => {
       const normItem = normalizeText(item);
@@ -86,7 +90,7 @@ export default function TransactionForm() {
     return combined;
   };
 
-  // Filtrado reactivo en tiempo real con soporte total de tildes/sin tildes
+  // Filtrado predictivo con normalización de tildes
   const handleDescriptionChange = (e) => {
     const val = e.target.value;
     setDescription(val);
@@ -95,11 +99,10 @@ export default function TransactionForm() {
       const normInput = normalizeText(val);
       const all = getAllPhrases();
 
-      // Buscar coincidencias ignorando tildes y mayúsculas
       const filtered = all.filter(p => {
         const normP = normalizeText(p);
         return normP.includes(normInput);
-      }).slice(0, 8); // Mostrar hasta 8 sugerencias
+      }).slice(0, 8);
 
       setSuggestions(filtered);
       setShowDropdown(filtered.length > 0);
@@ -109,45 +112,39 @@ export default function TransactionForm() {
     }
   };
 
-  // Seleccionar una sugerencia para autocompletar la frase al instante
+  // Seleccionar sugerencia
   const handleSelectSuggestion = (phrase) => {
     setDescription(phrase);
     setShowDropdown(false);
 
-    // Detección automática inteligente de categoría según la frase
+    // Asociación automática de categoría si coincide
     const norm = normalizeText(phrase);
-    if (norm.includes('picar') || norm.includes('alfajor') || norm.includes('galleta') || norm.includes('snack') || norm.includes('papas')) {
-      setCategory('Algo para picar');
-    } else if (norm.includes('pasaje') || norm.includes('micro') || norm.includes('taxi') || norm.includes('bus') || norm.includes('metro')) {
-      setCategory('Pasaje');
-    } else if (norm.includes('refrezco') || norm.includes('refresco') || norm.includes('gaseosa') || norm.includes('agua') || norm.includes('jugo')) {
-      setCategory('Refrezcos');
-    } else if (norm.includes('almuerzo') || norm.includes('comida') || norm.includes('desayuno') || norm.includes('cena') || norm.includes('menu')) {
-      setCategory('Comida');
-    } else if (norm.includes('universidad') || norm.includes('estudio') || norm.includes('libro') || norm.includes('copia')) {
-      setCategory('Estudios o universidad');
-    } else if (norm.includes('trabajo') || norm.includes('sueldo') || norm.includes('quincena') || norm.includes('salario')) {
-      setCategory('Trabajo');
-    } else if (norm.includes('juego') || norm.includes('recarga') || norm.includes('play')) {
-      setCategory('Juegos');
-    } else if (norm.includes('salida') || norm.includes('amigos') || norm.includes('paseo')) {
-      setCategory('Salidas');
-    } else if (norm.includes('mercado') || norm.includes('verdura') || norm.includes('carne') || norm.includes('abarrote')) {
-      setCategory('Compras de mercado');
-    } else if (norm.includes('trago') || norm.includes('cerveza') || norm.includes('chela') || norm.includes('botella')) {
-      setCategory('Trago');
-    } else if (norm.includes('regalo') || norm.includes('propina') || norm.includes('cumple')) {
-      setCategory('Regalos');
-    } else if (norm.includes('veterinaria') || norm.includes('perro') || norm.includes('gato') || norm.includes('mascota')) {
-      setCategory('Veterinaria');
-    } else if (norm.includes('hospital') || norm.includes('medico') || norm.includes('farmacia') || norm.includes('pastilla')) {
-      setCategory('Hospital');
-    } else if (norm.includes('apoyo') || norm.includes('prestamo') || norm.includes('preste') || norm.includes('ayuda')) {
-      setCategory('Apoyos');
+    if (type === 'gasto') {
+      if (norm.includes('picar') || norm.includes('alfajor') || norm.includes('galleta') || norm.includes('snack')) {
+        setCategory('Algo para picar');
+      } else if (norm.includes('pasaje') || norm.includes('micro') || norm.includes('taxi')) {
+        setCategory('Pasaje');
+      } else if (norm.includes('refrezco') || norm.includes('gaseosa') || norm.includes('agua') || norm.includes('jugo')) {
+        setCategory('Refrezcos');
+      } else if (norm.includes('comida') || norm.includes('almuerzo') || norm.includes('desayuno') || norm.includes('cena')) {
+        setCategory('Comida');
+      } else if (norm.includes('prestamo') || norm.includes('preste') || norm.includes('prestar')) {
+        setCategory('Préstamos');
+      }
+    } else {
+      if (norm.includes('prestamo') || norm.includes('preste') || norm.includes('prestar')) {
+        setCategory('Préstamos');
+      } else if (norm.includes('propina') || norm.includes('regalo') || norm.includes('dieron')) {
+        setCategory('Propina');
+      } else if (norm.includes('trabajo') || norm.includes('sueldo') || norm.includes('quincena')) {
+        setCategory('Trabajo');
+      } else if (norm.includes('universidad') || norm.includes('estudio')) {
+        setCategory('Universidad');
+      }
     }
   };
 
-  // Cerrar dropdown al hacer click fuera
+  // Cerrar dropdown al hacer click afuera
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
@@ -171,13 +168,12 @@ export default function TransactionForm() {
     }
 
     if (!description.trim()) {
-      setErrorMsg('Por favor escribe el motivo o por qué del dinero');
+      setErrorMsg('Por favor escribe el motivo');
       return;
     }
 
     setSaving(true);
     try {
-      // Fecha y hora actual inmutable
       const now = new Date();
       const dateFormatted = now.toLocaleDateString('es-PE', {
         day: '2-digit',
@@ -194,16 +190,15 @@ export default function TransactionForm() {
         type,
         amount,
         category,
+        paymentMethod,
         description: description.trim(),
         date: `${dateFormatted} • ${timeFormatted}`,
         notes: ''
       });
 
-      // Animación de éxito
       setSuccessAnim(true);
       setTimeout(() => setSuccessAnim(false), 2200);
 
-      // Limpiar formulario para el siguiente registro
       setAmount('');
       setDescription('');
       setShowDropdown(false);
@@ -214,11 +209,12 @@ export default function TransactionForm() {
     }
   };
 
+  const currentCategories = type === 'gasto' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
   const quickChips = getAllPhrases().slice(0, 4);
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
-      {/* Selector Principal: Salida vs Ingreso con letras grandes y claras */}
+      {/* Selector: Salida (Gasto) vs Ingreso */}
       <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800 mb-4">
         <button
           type="button"
@@ -256,37 +252,64 @@ export default function TransactionForm() {
       {successAnim && (
         <div className="mb-4 p-3.5 bg-emerald-950/70 border border-emerald-500/50 rounded-xl text-sm text-emerald-300 flex items-center gap-2.5">
           <Check className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-          <span>¡Movimiento registrado con éxito! Quedó sellado con su fecha y hora fija.</span>
+          <span>¡Movimiento registrado con éxito!</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* 1. SELECCIÓN DE CATEGORÍA */}
-        <div>
-          <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-2">
-            Categoría
-          </label>
-          <div className="relative">
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white font-medium text-base focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
-            >
-              {CUSTOM_CATEGORIES.map(cat => (
-                <option key={cat.id} value={cat.label} className="bg-slate-900 text-white py-2">
-                  {cat.label}
-                </option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
-              <ChevronDown className="w-5 h-5" />
+        {/* FILA 1: CATEGORÍA Y MEDIO / CUENTA (Yape, BCP, SIP, PLIN, LEMON, BBVA) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* CATEGORÍA */}
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+              Categoría
+            </label>
+            <div className="relative">
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white font-medium text-sm sm:text-base focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+              >
+                {currentCategories.map(cat => (
+                  <option key={cat} value={cat} className="bg-slate-900 text-white py-2">
+                    {cat}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <ChevronDown className="w-5 h-5" />
+              </div>
+            </div>
+          </div>
+
+          {/* MEDIO DE PAGO / CUENTA (Yape, BCP, SIP, PLIN, LEMON, BBVA) */}
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5 flex items-center gap-1.5">
+              <CreditCard className="w-4 h-4 text-indigo-400" />
+              Cuenta / Medio
+            </label>
+            <div className="relative">
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-sm sm:text-base focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+              >
+                {PAYMENT_METHODS.map(method => (
+                  <option key={method} value={method} className="bg-slate-900 text-white font-bold py-2">
+                    {method}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <ChevronDown className="w-5 h-5" />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* 2. CAMPO MONTO */}
+        {/* FILA 2: MONTO */}
         <div>
-          <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-2">
+          <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
             ¿Cuánto dinero es? ({settings.currency || 'S/.'})
           </label>
           <div className="relative">
@@ -307,17 +330,11 @@ export default function TransactionForm() {
           </div>
         </div>
 
-        {/* 3. CAMPO MOTIVO (EL POR QUÉ) CON APRENDIZAJE Y AUTOCOMPLETADO */}
+        {/* FILA 3: MOTIVO (SIN TEXTOS MOLESTOS NI (EL POR QUÉ)) */}
         <div className="relative">
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              Motivo (El por qué)
-            </label>
-            <span className="text-[11px] text-indigo-400 bg-indigo-950/60 px-2 py-0.5 rounded-full border border-indigo-800/40">
-              Aprende de tu forma de escribir
-            </span>
-          </div>
+          <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+            Motivo
+          </label>
 
           <input
             ref={inputRef}
@@ -329,17 +346,13 @@ export default function TransactionForm() {
                 setShowDropdown(true);
               }
             }}
-            placeholder={
-              type === 'gasto'
-                ? 'Escribe el motivo (ej: "compre un alfajor", "pasaje", etc.)'
-                : 'Escribe el motivo (ej: "sueldo", "plata que me dieron", etc.)'
-            }
+            placeholder="Escribe el motivo..."
             className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-sm sm:text-base font-normal"
             required
             autoComplete="off"
           />
 
-          {/* Menú flotante de opciones inteligentes mientras escribe */}
+          {/* Menú flotante de opciones para completar rápido */}
           {showDropdown && suggestions.length > 0 && (
             <div
               ref={dropdownRef}
@@ -365,8 +378,8 @@ export default function TransactionForm() {
             </div>
           )}
 
-          {/* Opciones rápidas para pulsar directamente */}
-          <div className="mt-2.5 flex flex-wrap gap-2">
+          {/* Opciones rápidas */}
+          <div className="mt-2 flex flex-wrap gap-2">
             <span className="text-xs text-slate-400 self-center font-medium">Opciones:</span>
             {quickChips.map((chip, idx) => (
               <button
@@ -381,7 +394,7 @@ export default function TransactionForm() {
           </div>
         </div>
 
-        {/* 4. FECHA Y HORA ACTUAL: AUTOMÁTICA E INMUTABLE */}
+        {/* FECHA Y HORA ACTUAL FIJA */}
         <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs sm:text-sm">
           <div className="flex items-center gap-2 text-slate-300">
             <Clock className="w-4 h-4 text-emerald-400" />

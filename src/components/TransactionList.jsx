@@ -29,6 +29,7 @@ export default function TransactionList() {
         return (
           t.description.toLowerCase().includes(q) ||
           t.category.toLowerCase().includes(q) ||
+          (t.paymentMethod && t.paymentMethod.toLowerCase().includes(q)) ||
           (t.date && t.date.toLowerCase().includes(q))
         );
       }
@@ -81,7 +82,7 @@ export default function TransactionList() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por categoría, motivo..."
+            placeholder="Buscar por categoría, motivo, Yape, BCP..."
             className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3.5 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
         </div>
@@ -117,7 +118,7 @@ export default function TransactionList() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  {/* CATEGORÍA EN EL LUGAR PRINCIPAL (GRANDE Y VISIBLE) */}
+                  {/* CATEGORÍA EN EL LUGAR PRINCIPAL (GRANDE Y VISIBLE) + MEDIO DE PAGO */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-base sm:text-lg font-bold text-white tracking-normal uppercase">
                       {item.category || (item.type === 'gasto' ? 'Gasto' : 'Ingreso')}
@@ -131,9 +132,16 @@ export default function TransactionList() {
                     >
                       {item.type === 'gasto' ? 'SALIDA' : 'INGRESO'}
                     </span>
+
+                    {/* MEDIO DE PAGO / CUENTA (Yape, BCP, SIP, PLIN, LEMON, BBVA) */}
+                    {item.paymentMethod && (
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        {item.paymentMethod}
+                      </span>
+                    )}
                   </div>
 
-                  {/* MOTIVO (EL POR QUÉ) JUSTO DEBAJO */}
+                  {/* MOTIVO JUSTO DEBAJO */}
                   <p className="text-sm text-slate-200 mt-0.5 font-normal break-words">
                     {item.description}
                   </p>
@@ -153,7 +161,7 @@ export default function TransactionList() {
                 </div>
               </div>
 
-              {/* Monto y Botón de Papelera a la derecha (SIN BOTÓN DE EDITAR) */}
+              {/* Monto y Botón de Papelera a la derecha */}
               <div className="flex items-center justify-between sm:justify-end gap-3.5 self-end sm:self-center pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800 w-full sm:w-auto">
                 <div className="text-right">
                   <div

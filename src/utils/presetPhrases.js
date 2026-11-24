@@ -1,5 +1,5 @@
 // Normalizador inteligente: elimina tildes, mayúsculas y acentos
-// Permite que "compre", "compré", "COMPRE" o "cómpree" coincidan siempre
+// Permite que "compre", "compré", "COMPRE" coincidan siempre
 export function normalizeText(str) {
   if (!str) return '';
   return str
@@ -9,26 +9,46 @@ export function normalizeText(str) {
     .trim();
 }
 
-// Las 15 categorías personalizadas solicitadas por el usuario
-export const CUSTOM_CATEGORIES = [
-  { id: 'algo_para_picar', label: 'Algo para picar', icon: 'Cookie' },
-  { id: 'pasaje', label: 'Pasaje', icon: 'Bus' },
-  { id: 'refrezcos', label: 'Refrezcos', icon: 'Coffee' },
-  { id: 'comida', label: 'Comida', icon: 'Utensils' },
-  { id: 'estudios_o_universidad', label: 'Estudios o universidad', icon: 'GraduationCap' },
-  { id: 'trabajo', label: 'Trabajo', icon: 'Briefcase' },
-  { id: 'juegos', label: 'Juegos', icon: 'Gamepad2' },
-  { id: 'salidas', label: 'Salidas', icon: 'PartyPopper' },
-  { id: 'compras_de_mercado', label: 'Compras de mercado', icon: 'ShoppingBag' },
-  { id: 'objetos', label: 'Objetos', icon: 'Package' },
-  { id: 'trago', label: 'Trago', icon: 'Wine' },
-  { id: 'regalos', label: 'Regalos', icon: 'Gift' },
-  { id: 'veterinaria', label: 'Veterinaria', icon: 'Dog' },
-  { id: 'hospital', label: 'Hospital', icon: 'HeartPulse' },
-  { id: 'apoyos', label: 'Apoyos', icon: 'HandHeart' }
+// Categorías para SALIDA (Gastos)
+export const EXPENSE_CATEGORIES = [
+  'Algo para picar',
+  'Pasaje',
+  'Refrezcos',
+  'Comida',
+  'Estudios o universidad',
+  'Trabajo',
+  'Juegos',
+  'Salidas',
+  'Compras de mercado',
+  'Objetos',
+  'Trago',
+  'Regalos',
+  'Veterinaria',
+  'Hospital',
+  'Apoyos',
+  'Préstamos'
 ];
 
-// Frases iniciales adaptadas a las 15 categorías
+// Categorías para INGRESO (Dinero que entra)
+export const INCOME_CATEGORIES = [
+  'Préstamos',
+  'Propina',
+  'Trabajo',
+  'Universidad'
+];
+
+// Medios de pago / Cuentas para ambos (Ingreso y Salida)
+export const PAYMENT_METHODS = [
+  'Yape',
+  'BCP',
+  'SIP',
+  'PLIN',
+  'LEMON',
+  'BBVA',
+  'Efectivo'
+];
+
+// Frases predictivas iniciales
 export const PRESET_PHRASES = {
   gasto: [
     "Compre un alfajor en la tienda",
@@ -55,16 +75,16 @@ export const PRESET_PHRASES = {
     "Compre un regalo de cumpleaños",
     "Comida y atencion veterinaria de mi mascota",
     "Consulta medica y medicina en farmacia",
-    "Apoyo de dinero que preste o regale"
+    "Apoyo de dinero que preste",
+    "Pago de prestamo que me hicieron"
   ],
   ingreso: [
     "Pago de mi sueldo o quincena",
     "Cobro por trabajo realizado",
-    "Dinero de apoyo que me dieron mis papas o familiar",
-    "Propina que me regalaron",
-    "Cobro de plata que me debian",
-    "Venta de un objeto o producto",
-    "Ganancia extra de trabajo",
+    "Propina que me dieron mis papas o familiar",
+    "Dinero para la universidad que me dieron",
+    "Prestamo de dinero que recibi",
+    "Cobro de prestamo que me debian",
     "Apoyo economico recibido"
   ]
 };
