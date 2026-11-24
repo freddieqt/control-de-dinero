@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'BovedaFinancieraDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbInstance = null;
 
@@ -32,6 +32,14 @@ export async function getDb() {
       if (!db.objectStoreNames.contains('phrases')) {
         const phraseStore = db.createObjectStore('phrases', { keyPath: 'id' });
         phraseStore.createIndex('by_type', 'type');
+      }
+
+      // Almacén para préstamos cifrados (Versión 2)
+      if (!db.objectStoreNames.contains('loans')) {
+        const loanStore = db.createObjectStore('loans', { keyPath: 'id' });
+        loanStore.createIndex('by_type', 'type');
+        loanStore.createIndex('by_status', 'status');
+        loanStore.createIndex('by_timestamp', 'timestamp');
       }
     }
   });
@@ -86,6 +94,28 @@ export async function putStoredTransaction(record) {
 export async function deleteStoredTransaction(id) {
   const db = await getDb();
   await db.delete('transactions', id);
+}
+
+// ==========================================
+// OPERACIONES DE PRÉSTAMOS CIFRADOS
+// ==========================================
+
+export async function getAllStoredLoans() {
+  const db = await getDb();
+  if (!db.objectStoreNames.contains('loans')) return [];
+  return await db.getAll('loans');
+}
+
+export async function putStoredLoan(record) {
+  const db = await getDb();
+  await db.put('loans', record);
+}
+
+export async function deleteStoredLoan(id) {
+  const db = await getDb();
+  if (db.objectStoreNames.contains('loans')) {
+    await db.delete('loans', id);
+  }
 }
 
 // ==========================================
@@ -148,5 +178,8 @@ export async function wipeEntireDatabase() {
   await db.clear('transactions');
   await db.clear('audit_log');
   await db.clear('phrases');
+  if (db.objectStoreNames.contains('loans')) {
+    await db.clear('loans');
+  }
   localStorage.removeItem('__vault_device_salt');
 }

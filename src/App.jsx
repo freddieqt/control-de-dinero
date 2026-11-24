@@ -9,16 +9,23 @@ import ManualBalanceModal from './components/ManualBalanceModal';
 import ProtectedTrashModal from './components/ProtectedTrashModal';
 import SecurityAuditModal from './components/SecurityAuditModal';
 import SettingsBackupModal from './components/SettingsBackupModal';
-import { ShieldCheck, Download, Smartphone } from 'lucide-react';
+import LoansModal from './components/LoansModal';
+import { ShieldCheck, HandCoins } from 'lucide-react';
 
 export default function App() {
-  const { isInitialized, isLocked, isSetupDone } = useVault();
+  const { isInitialized, isLocked, isSetupDone, totalMeDeben, totalYoDebo, settings, privacyMode } = useVault();
 
   // Modales
   const [showManualBalance, setShowManualBalance] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
   const [showAudit, setShowAudit] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showLoans, setShowLoans] = useState(false);
+
+  const formatAmount = (num) => {
+    if (privacyMode) return '••••••';
+    return `${settings.currency || 'S/.'} ${(num || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
   // Pantalla de carga mientras se inicializa el motor criptográfico
   if (!isInitialized) {
@@ -34,7 +41,6 @@ export default function App() {
   }
 
   // Si la bóveda está bloqueada o aún no configurada, mostrar Pantalla de Bloqueo
-  // Cero fuga de información: ningún saldo ni registro se renderiza
   if (isLocked || !isSetupDone) {
     return <LockScreen />;
   }
@@ -55,14 +61,48 @@ export default function App() {
         {/* Tarjeta de Dinero General */}
         <BalanceCard onOpenManualBalance={() => setShowManualBalance(true)} />
 
-        {/* Formulario de Entrada con Autocompletado Predictivo */}
+        {/* Tarjeta de Acceso Rápido a Préstamos (Quién me debe / A quién le debo) */}
+        <div className="bg-slate-900 border border-indigo-500/30 hover:border-indigo-500/50 rounded-2xl p-4 shadow-md flex items-center justify-between gap-3 transition-all">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-11 h-11 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center flex-shrink-0">
+              <HandCoins className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                <span>Control de Préstamos</span>
+                {(totalMeDeben > 0 || totalYoDebo > 0) && (
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                )}
+              </div>
+              <div className="text-xs text-slate-300 mt-0.5 flex items-center gap-2 flex-wrap">
+                <span>Te deben: <strong className="text-emerald-400 font-bold">{formatAmount(totalMeDeben)}</strong></span>
+                <span>•</span>
+                <span>Debes: <strong className="text-rose-400 font-bold">{formatAmount(totalYoDebo)}</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowLoans(true)}
+            className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow flex-shrink-0"
+          >
+            Ver Préstamos
+          </button>
+        </div>
+
+        {/* Formulario de Entrada con Calculadora y Autocompletado */}
         <TransactionForm />
 
-        {/* Lista de Movimientos con Verificación Criptográfica */}
+        {/* Lista de Movimientos con Filtros por Tiempo */}
         <TransactionList />
       </main>
 
       {/* Modales */}
+      <LoansModal
+        isOpen={showLoans}
+        onClose={() => setShowLoans(false)}
+      />
+
       <ManualBalanceModal
         isOpen={showManualBalance}
         onClose={() => setShowManualBalance(false)}

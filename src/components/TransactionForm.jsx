@@ -14,8 +14,25 @@ import {
   Lock,
   Clock,
   ChevronDown,
-  CreditCard
+  CreditCard,
+  Calculator
 } from 'lucide-react';
+
+function evaluateMath(expr) {
+  if (!expr) return null;
+  const clean = expr.trim();
+  // Validar que solo contenga números, puntos, espacios y operadores permitidos
+  if (!/^[0-9+\-*/. ()]+$/.test(clean)) return null;
+  try {
+    const result = Function(`"use strict"; return (${clean})`)();
+    if (typeof result === 'number' && !isNaN(result) && isFinite(result)) {
+      return Math.round(result * 100) / 100;
+    }
+  } catch (e) {
+    return null;
+  }
+  return null;
+}
 
 export default function TransactionForm() {
   const { addTransaction, settings, learnedPhrases } = useVault();
@@ -39,6 +56,10 @@ export default function TransactionForm() {
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
 
+  // Cálculo en vivo de la calculadora
+  const calculatedResult = evaluateMath(amount);
+  const hasMathOperator = /[+\-*/]/.test(amount);
+
   // Reloj en vivo
   useEffect(() => {
     const updateTime = () => {
@@ -61,7 +82,7 @@ export default function TransactionForm() {
     return () => clearInterval(interval);
   }, []);
 
-  // Al alternar entre gasto e ingreso, actualizar lista de categorías correspondientes
+  // Al alternar entre gasto e ingreso, actualizar categorías
   useEffect(() => {
     if (type === 'gasto') {
       setCategory(EXPENSE_CATEGORIES[0]);
@@ -70,7 +91,7 @@ export default function TransactionForm() {
     }
   }, [type]);
 
-  // Obtener todas las frases disponibles (las del usuario tienen máxima prioridad)
+  // Obtener todas las frases disponibles (las del usuario tienen prioridad)
   const getAllPhrases = () => {
     const customUserList = learnedPhrases
       .filter(p => p.type === type)
@@ -117,7 +138,6 @@ export default function TransactionForm() {
     setDescription(phrase);
     setShowDropdown(false);
 
-    // Asociación automática de categoría si coincide
     const norm = normalizeText(phrase);
     if (type === 'gasto') {
       if (norm.includes('picar') || norm.includes('alfajor') || norm.includes('galleta') || norm.includes('snack')) {
@@ -144,7 +164,7 @@ export default function TransactionForm() {
     }
   };
 
-  // Cerrar dropdown al hacer click afuera
+  // Cerrar dropdown al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
@@ -162,7 +182,10 @@ export default function TransactionForm() {
     e.preventDefault();
     setErrorMsg('');
 
-    if (!amount || parseFloat(amount) <= 0) {
+    // Resolver cálculo de calculadora si escribió una suma tipo 2.50 + 3
+    const finalAmount = calculatedResult !== null ? calculatedResult : parseFloat(amount);
+
+    if (isNaN(finalAmount) || finalAmount <= 0) {
       setErrorMsg('Ingresa un monto válido mayor a 0');
       return;
     }
@@ -188,7 +211,7 @@ export default function TransactionForm() {
 
       await addTransaction({
         type,
-        amount,
+        amount: finalAmount,
         category,
         paymentMethod,
         description: description.trim(),
@@ -257,7 +280,7 @@ export default function TransactionForm() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* FILA 1: CATEGORÍA Y MEDIO / CUENTA (Yape, BCP, SIP, PLIN, LEMON, BBVA) */}
+        {/* FILA 1: CATEGORÍA Y MEDIO / CUENTA */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* CATEGORÍA */}
           <div>
@@ -282,7 +305,7 @@ export default function TransactionForm() {
             </div>
           </div>
 
-          {/* MEDIO DE PAGO / CUENTA (Yape, BCP, SIP, PLIN, LEMON, BBVA) */}
+          {/* CUENTA / MEDIO DE PAGO */}
           <div>
             <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5 flex items-center gap-1.5">
               <CreditCard className="w-4 h-4 text-indigo-400" />
@@ -307,30 +330,55 @@ export default function TransactionForm() {
           </div>
         </div>
 
-        {/* FILA 2: MONTO */}
+        {/* FILA 2: MONTO CON CALCULADORA MATEMÁTICA RÁPIDA */}
         <div>
-          <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
-            ¿Cuánto dinero es? ({settings.currency || 'S/.'})
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
+              <Calculator className="w-4 h-4 text-emerald-400" />
+              ¿Cuánto dinero es? ({settings.currency || 'S/.'})
+            </label>
+            {hasMathOperator && calculatedResult !== null && (
+              <span className="text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-2 py-0.5 rounded-md">
+                = {settings.currency || 'S/.'} {calculatedResult.toFixed(2)}
+              </span>
+            )}
+          </div>
+
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-slate-400">
               {settings.currency || 'S/.'}
             </span>
             <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              inputMode="decimal"
-              placeholder="0.00"
+              type="text"
+              placeholder="0.00 (puedes escribir 2.50 + 3)"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-12 pr-4 py-3 text-2xl font-bold text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
               required
             />
           </div>
+
+          {/* Atajos de suma rápida para agregar dinero con un toque */}
+          <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-1">
+            <span className="text-xs text-slate-400 font-medium">Sumar:</span>
+            {[1, 2, 5, 10, 20].map((inc) => (
+              <button
+                key={inc}
+                type="button"
+                onClick={() => {
+                  const currentVal = calculatedResult !== null ? calculatedResult : parseFloat(amount);
+                  const base = isNaN(currentVal) ? 0 : currentVal;
+                  setAmount((base + inc).toFixed(2));
+                }}
+                className="text-xs px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition-colors"
+              >
+                + {inc}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* FILA 3: MOTIVO (SIN TEXTOS MOLESTOS NI (EL POR QUÉ)) */}
+        {/* FILA 3: MOTIVO */}
         <div className="relative">
           <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
             Motivo
@@ -352,7 +400,7 @@ export default function TransactionForm() {
             autoComplete="off"
           />
 
-          {/* Menú flotante de opciones para completar rápido */}
+          {/* Menú flotante de opciones */}
           {showDropdown && suggestions.length > 0 && (
             <div
               ref={dropdownRef}
