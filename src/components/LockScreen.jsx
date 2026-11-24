@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useVault } from '../context/VaultContext';
 import { DeadpoolLoginMiddleFinger } from './DeadpoolGreeting';
 import {
@@ -11,9 +11,35 @@ import {
   AlertTriangle,
   Sun,
   Moon,
-  Sparkles,
-  ArrowRight
+  ArrowRight,
+  Check
 } from 'lucide-react';
+
+const SAVED_PASS_KEY = '__vault_remembered_pwd_v1';
+
+function loadSavedPassword() {
+  try {
+    const raw = localStorage.getItem(SAVED_PASS_KEY);
+    if (raw) {
+      return decodeURIComponent(atob(raw));
+    }
+  } catch {
+    // ignore
+  }
+  return '';
+}
+
+function storeSavedPassword(pwd) {
+  try {
+    if (pwd) {
+      localStorage.setItem(SAVED_PASS_KEY, btoa(encodeURIComponent(pwd)));
+    } else {
+      localStorage.removeItem(SAVED_PASS_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
 
 export default function LockScreen() {
   const {
@@ -26,13 +52,38 @@ export default function LockScreen() {
     toggleTheme
   } = useVault();
 
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState(() => loadSavedPassword());
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [rememberPass, setRememberPass] = useState(() => {
+    try {
+      return localStorage.getItem(SAVED_PASS_KEY) !== null || true;
+    } catch {
+      return true;
+    }
+  });
   const [totpCode, setTotpCode] = useState('');
   const [showTotpField, setShowTotpField] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Cargar contraseña guardada al montar si existe
+  useEffect(() => {
+    const saved = loadSavedPassword();
+    if (saved) {
+      setPassword(saved);
+      setRememberPass(true);
+    }
+  }, []);
+
+  const handleToggleRemember = (checked) => {
+    setRememberPass(checked);
+    if (!checked) {
+      storeSavedPassword('');
+    } else if (password) {
+      storeSavedPassword(password);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,8 +99,16 @@ export default function LockScreen() {
           throw new Error("Las contraseñas no coinciden. Escríbelas iguales.");
         }
         await setupVault(password);
+        if (rememberPass) {
+          storeSavedPassword(password);
+        }
       } else {
         await unlockVault(password, totpCode);
+        if (rememberPass) {
+          storeSavedPassword(password);
+        } else {
+          storeSavedPassword('');
+        }
       }
     } catch (err) {
       if (err.message === "TOTP_REQUIRED") {
@@ -65,7 +124,7 @@ export default function LockScreen() {
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-[#04060c] text-slate-900 dark:text-slate-100 flex flex-col justify-center items-center p-4 relative overflow-hidden transition-colors duration-300">
-      {/* Fondo ambiental con luces de estudio y malla sutil */}
+      {/* Fondo ambiental con luces de estudio */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[18%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] bg-gradient-to-tr from-rose-600/20 via-red-500/15 to-amber-500/15 rounded-full blur-[90px]" />
         <div className="absolute bottom-[-10%] left-1/2 -translate-x-1/2 w-[500px] h-[250px] bg-rose-600/10 rounded-full blur-[100px]" />
@@ -91,24 +150,22 @@ export default function LockScreen() {
         </button>
       </div>
 
-      {/* Contenedor Principal Integrado (Deadpool emerge directamente desde la tarjeta sin cortes bruscos) */}
-      <div className="w-full max-w-[390px] z-10 mt-6">
+      {/* Contenedor Principal Integrado */}
+      <div className="w-full max-w-[390px] z-10 mt-4">
         {/* Figura de Deadpool integrada emergiendo detrás del borde superior de la tarjeta */}
         <div className="relative flex justify-center -mb-14 z-10 pointer-events-none">
-          {/* Halo circular detrás de Deadpool */}
           <div className="absolute top-6 w-48 h-48 rounded-full bg-gradient-to-b from-rose-500/20 via-amber-500/10 to-transparent border border-rose-500/20 blur-[1px]" />
           <DeadpoolLoginMiddleFinger className="w-56 h-64 sm:w-60 sm:h-68" />
         </div>
 
-        {/* Tarjeta Principal Premium con borde luminoso y cristal esmerilado */}
+        {/* Tarjeta Principal Premium */}
         <div className="relative z-20 rounded-3xl bg-white/95 dark:bg-[#0b0f19]/95 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800/90 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.65)] dark:shadow-[0_25px_80px_-15px_rgba(225,29,72,0.22)] overflow-hidden">
-          {/* Línea superior brillante rojo-dorado que oculta el corte de la cintura de Deadpool */}
           <div className="h-1.5 w-full bg-gradient-to-r from-rose-600 via-amber-400 to-rose-600" />
 
           <div className="p-6 sm:p-7">
-            {/* Encabezado dentro de la tarjeta */}
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 dark:bg-rose-500/15 border border-rose-500/25 text-rose-600 dark:text-rose-300 text-[11px] font-bold tracking-wide mb-2.5">
+            {/* Encabezado */}
+            <div className="text-center mb-5">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 dark:bg-rose-500/15 border border-rose-500/25 text-rose-600 dark:text-rose-300 text-[11px] font-bold tracking-wide mb-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span>BÓVEDA PERSONAL</span>
               </div>
@@ -118,7 +175,7 @@ export default function LockScreen() {
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
                 {isSetupDone
-                  ? 'Ingresa tu contraseña para abrir tu bóveda'
+                  ? 'Ingresa o toca entrar para abrir tu bóveda'
                   : 'Crea una contraseña segura para empezar'}
               </p>
             </div>
@@ -144,22 +201,33 @@ export default function LockScreen() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
+              {/* Campo oculto de usuario para que el gestor de contraseñas del celular también lo reconozca */}
+              <input
+                type="text"
+                name="username"
+                defaultValue="ControlDeDinero"
+                autoComplete="username"
+                className="hidden"
+                readOnly
+              />
+
               <div>
                 <div className="relative group">
-                  {/* Icono de llave a la izquierda */}
                   <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-slate-200/70 dark:bg-slate-800/80 flex items-center justify-center text-slate-500 dark:text-rose-400 group-focus-within:bg-rose-500/20 group-focus-within:text-rose-500 transition-colors">
                     <KeyRound className="w-4 h-4 stroke-[2.2]" />
                   </div>
 
                   <input
+                    id="vault-password"
+                    name="password"
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete={isSetupDone ? 'current-password' : 'new-password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={isSetupDone ? 'Escribe tu contraseña...' : 'Crea tu contraseña (mín. 6)...'}
                     disabled={lockoutRemaining > 0 || loading}
                     className="w-full bg-slate-100/90 dark:bg-[#060911] border-2 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 focus:border-rose-500 dark:focus:border-rose-500 rounded-2xl pl-14 pr-12 py-3.5 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none text-sm font-medium transition-all shadow-inner"
-                    autoFocus
                     required
                   />
 
@@ -181,7 +249,9 @@ export default function LockScreen() {
                       <Lock className="w-4 h-4 stroke-[2.2]" />
                     </div>
                     <input
+                      name="confirm-password"
                       type={showPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirma tu misma contraseña..."
@@ -192,6 +262,30 @@ export default function LockScreen() {
                   </div>
                 </div>
               )}
+
+              {/* Opción de Autoguardar Contraseña en este celular para no escribirla desde 0 */}
+              <label className="flex items-center gap-2.5 px-1 py-0.5 cursor-pointer select-none group">
+                <div className="relative flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={rememberPass}
+                    onChange={(e) => handleToggleRemember(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div
+                    className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${
+                      rememberPass
+                        ? 'bg-rose-600 border-rose-500 text-white shadow-sm shadow-rose-500/30'
+                        : 'bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700'
+                    }`}
+                  >
+                    {rememberPass && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                  </div>
+                </div>
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                  Recordar mi contraseña en este celular
+                </span>
+              </label>
 
               {/* Código 2FA TOTP si está activado */}
               {(showTotpField || (totpConfig && totpConfig.enabled)) && (
@@ -236,7 +330,7 @@ export default function LockScreen() {
             </form>
 
             {/* Pie limpio y elegante */}
-            <div className="mt-6 pt-4 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
+            <div className="mt-5 pt-4 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
               <ShieldCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400 stroke-[2.3]" />
               <span>Tus datos están protegidos en este dispositivo</span>
             </div>

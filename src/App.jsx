@@ -26,6 +26,99 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showDeadpoolWelcome, setShowDeadpoolWelcome] = useState(false);
 
+  // Estado para el aviso de "Pulsa de nuevo para salir" al presionar Retroceder en el celular
+  const [showExitToast, setShowExitToast] = useState(false);
+  const lastBackPressRef = useRef(0);
+  const exitToastTimerRef = useRef(null);
+
+  // Referencias actualizadas para el interceptor del botón Retroceder
+  const navStateRef = useRef({
+    showManualBalance,
+    showTrash,
+    showAudit,
+    showSettings,
+    showDeadpoolWelcome,
+    currentSection,
+    isLocked
+  });
+  navStateRef.current = {
+    showManualBalance,
+    showTrash,
+    showAudit,
+    showSettings,
+    showDeadpoolWelcome,
+    currentSection,
+    isLocked
+  };
+
+  // Interceptor del botón "Atrás / Retroceder" del celular para no salirse de golpe
+  useEffect(() => {
+    // Insertar estado guarda en el historial al iniciar
+    window.history.pushState({ vaultGuard: true }, '');
+
+    const handlePopState = () => {
+      const st = navStateRef.current;
+
+      // 1. Si hay algún modal abierto, el botón Atrás cierra primero ese modal
+      if (st.showDeadpoolWelcome) {
+        setShowDeadpoolWelcome(false);
+        window.history.pushState({ vaultGuard: true }, '');
+        return;
+      }
+      if (st.showManualBalance) {
+        setShowManualBalance(false);
+        window.history.pushState({ vaultGuard: true }, '');
+        return;
+      }
+      if (st.showTrash) {
+        setShowTrash(false);
+        window.history.pushState({ vaultGuard: true }, '');
+        return;
+      }
+      if (st.showAudit) {
+        setShowAudit(false);
+        window.history.pushState({ vaultGuard: true }, '');
+        return;
+      }
+      if (st.showSettings) {
+        setShowSettings(false);
+        window.history.pushState({ vaultGuard: true }, '');
+        return;
+      }
+
+      // 2. Si está en la pestaña de Préstamos, el botón Atrás regresa primero a Movimientos
+      if (!st.isLocked && st.currentSection === 'prestamos') {
+        setCurrentSection('movimientos');
+        window.history.pushState({ vaultGuard: true }, '');
+        return;
+      }
+
+      // 3. Si está en la pantalla principal, pedir doble toque ("Pulsa de nuevo para salir")
+      const now = Date.now();
+      if (now - lastBackPressRef.current < 2400) {
+        // Segunda pulsación dentro de 2.4 segundos: permitir salir de la app
+        setShowExitToast(false);
+        window.history.back();
+      } else {
+        // Primera pulsación: evitar que se cierre y mostrar aviso
+        lastBackPressRef.current = now;
+        setShowExitToast(true);
+        window.history.pushState({ vaultGuard: true }, '');
+
+        if (exitToastTimerRef.current) clearTimeout(exitToastTimerRef.current);
+        exitToastTimerRef.current = setTimeout(() => {
+          setShowExitToast(false);
+        }, 2400);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (exitToastTimerRef.current) clearTimeout(exitToastTimerRef.current);
+    };
+  }, []);
+
   // Detectar cuando el usuario acaba de desbloquear e ingresar a la bóveda
   const prevLockedRef = useRef(true);
   useEffect(() => {
@@ -34,6 +127,14 @@ export default function App() {
     }
     prevLockedRef.current = isLocked;
   }, [isLocked, isSetupDone]);
+
+  // Aviso flotante "Pulsa de nuevo para salir" (visible tanto en LockScreen como dentro de la app)
+  const exitToastBanner = showExitToast && (
+    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] px-5 py-2.5 rounded-full bg-slate-900/95 dark:bg-slate-800/95 text-white border border-rose-500/40 shadow-2xl text-xs sm:text-sm font-bold tracking-wide flex items-center gap-2 animate-fadeIn pointer-events-none whitespace-nowrap">
+      <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+      <span>Pulsa atrás de nuevo para salir</span>
+    </div>
+  );
 
   // Pantalla de carga mientras se inicializa el motor criptográfico
   if (!isInitialized) {
@@ -50,12 +151,17 @@ export default function App() {
 
   // Si la bóveda está bloqueada o aún no configurada, mostrar Pantalla de Bloqueo
   if (isLocked || !isSetupDone) {
-    return <LockScreen />;
+    return (
+      <>
+        <LockScreen />
+        {exitToastBanner}
+      </>
+    );
   }
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-[#030712] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
-      {/* Cabecera de Seguridad con iconos vivos */}
+      {/* Cabecera de Seguridad con iconos vivos y adaptada a pantalla de celular */}
       <Header
         onOpenTrash={() => setShowTrash(true)}
         onOpenAudit={() => setShowAudit(true)}
@@ -122,7 +228,10 @@ export default function App() {
         )}
       </main>
 
-      {/* Animación del Billete de Dólar de Deadpool (con el Deadpool de la 3ra imagen dentro) al ingresar */}
+      {/* Aviso flotante "Pulsa atrás de nuevo para salir" */}
+      {exitToastBanner}
+
+      {/* Animación del Billete de Dólar de Deadpool al ingresar */}
       <DeadpoolGreeting
         isOpen={showDeadpoolWelcome}
         onClose={() => setShowDeadpoolWelcome(false)}
