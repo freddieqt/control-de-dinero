@@ -175,13 +175,13 @@ export default function LoansManager() {
   return (
     <div className="space-y-4 pt-1">
       {/* 1. Selector Superior: "Me deben" vs "Yo debo" */}
-      <div className="grid grid-cols-2 gap-2 p-1 bg-slate-900 border border-slate-800 rounded-2xl">
+      <div className="grid grid-cols-2 gap-2 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
         <button
           onClick={() => setActiveTab('me_deben')}
           className={`py-3 px-3 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all ${
             activeTab === 'me_deben'
-              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-950/50'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-emerald-600 text-white shadow-lg'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
           }`}
         >
           <HandCoins className="w-5 h-5 text-emerald-300" />
@@ -192,8 +192,8 @@ export default function LoansManager() {
           onClick={() => setActiveTab('yo_debo')}
           className={`py-3 px-3 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all ${
             activeTab === 'yo_debo'
-              ? 'bg-rose-600 text-white shadow-lg shadow-rose-950/50'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-rose-600 text-white shadow-lg'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
           }`}
         >
           <Users className="w-5 h-5 text-rose-300" />
@@ -202,13 +202,13 @@ export default function LoansManager() {
       </div>
 
       {/* 2. Tarjeta Resumen Total y Botón Agregar */}
-      <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm dark:shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="text-xs sm:text-sm text-slate-400 font-medium">
+          <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
             {activeTab === 'me_deben' ? 'Dinero total que te deben por cobrar:' : 'Dinero total que debes por pagar:'}
           </div>
           <div className={`text-3xl sm:text-4xl font-black mt-1 tracking-tight ${
-            activeTab === 'me_deben' ? 'text-emerald-400' : 'text-rose-400'
+            activeTab === 'me_deben' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
           }`}>
             {formatAmount(activeTab === 'me_deben' ? totalMeDeben : totalYoDebo)}
           </div>
@@ -218,8 +218,8 @@ export default function LoansManager() {
           onClick={handleOpenCreate}
           className={`py-3 px-4 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-95 ${
             activeTab === 'me_deben'
-              ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-950/40'
-              : 'bg-rose-600 hover:bg-rose-500 shadow-rose-950/40'
+              ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-950/20'
+              : 'bg-rose-600 hover:bg-rose-500 shadow-rose-950/20'
           }`}
         >
           <PlusCircle className="w-5 h-5" />
@@ -229,11 +229,11 @@ export default function LoansManager() {
 
       {/* 3. Sub-filtro: Pendientes vs Pagados */}
       <div className="flex items-center justify-between">
-        <div className="flex gap-1.5 p-1 bg-slate-900 border border-slate-800 rounded-xl">
+        <div className="flex gap-1.5 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
           <button
             onClick={() => setFilterStatus('pendiente')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-              filterStatus === 'pendiente' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+              filterStatus === 'pendiente' ? 'bg-indigo-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             Pendientes
@@ -241,7 +241,7 @@ export default function LoansManager() {
           <button
             onClick={() => setFilterStatus('pagado')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-              filterStatus === 'pagado' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+              filterStatus === 'pagado' ? 'bg-indigo-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             Completamente Pagados
@@ -249,27 +249,27 @@ export default function LoansManager() {
           <button
             onClick={() => setFilterStatus('todos')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-              filterStatus === 'todos' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+              filterStatus === 'todos' ? 'bg-indigo-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             Todos
           </button>
         </div>
 
-        <span className="text-xs text-slate-400 font-medium">
+        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
           {currentLoans.length} {currentLoans.length === 1 ? 'persona' : 'personas'}
         </span>
       </div>
 
       {/* 4. Lista de Personas / Préstamos */}
       {currentLoans.length === 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center">
-          <p className="text-sm sm:text-base font-semibold text-slate-300">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center shadow-sm">
+          <p className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">
             {filterStatus === 'pendiente'
               ? (activeTab === 'me_deben' ? 'No tienes dinero pendiente por cobrar.' : 'No tienes deudas pendientes por pagar.')
               : 'No hay préstamos en esta lista.'}
           </p>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Usa el botón de arriba para registrar uno nuevo.
           </p>
         </div>
@@ -283,31 +283,31 @@ export default function LoansManager() {
             return (
               <div
                 key={loan.id}
-                className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-3"
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg space-y-3"
               >
                 {/* Cabecera de la tarjeta */}
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="text-lg font-bold text-white tracking-tight">
+                      <h4 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                         {loan.personName}
                       </h4>
                       {loan.paymentMethod && (
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
                           {loan.paymentMethod}
                         </span>
                       )}
                       <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
                         isCompleted
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                          ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40'
+                          : 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40'
                       }`}>
                         {isCompleted ? '¡PAGADO COMPLETO!' : `FALTA: ${formatAmount(pending)}`}
                       </span>
                     </div>
 
                     {loan.note && (
-                      <p className="text-xs text-slate-400 mt-1">{loan.note}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{loan.note}</p>
                     )}
                   </div>
 
@@ -318,7 +318,7 @@ export default function LoansManager() {
                         deleteLoan(loan.id);
                       }
                     }}
-                    className="p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors"
+                    className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     title="Eliminar préstamo"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -326,25 +326,25 @@ export default function LoansManager() {
                 </div>
 
                 {/* Números: Total, Pagado, Falta */}
-                <div className="grid grid-cols-3 gap-2 p-3 bg-slate-950 rounded-xl text-center">
+                <div className="grid grid-cols-3 gap-2 p-3 bg-slate-50 dark:bg-slate-950 rounded-xl text-center border border-slate-100 dark:border-transparent">
                   <div>
-                    <div className="text-[11px] text-slate-400 font-medium">Total Prestado</div>
-                    <div className="text-sm sm:text-base font-bold text-white mt-0.5">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Total Prestado</div>
+                    <div className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mt-0.5">
                       {formatAmount(loan.totalAmount)}
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-[11px] text-slate-400 font-medium">Total Pagado</div>
-                    <div className="text-sm sm:text-base font-bold text-emerald-400 mt-0.5">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Total Pagado</div>
+                    <div className="text-sm sm:text-base font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
                       {formatAmount(loan.paidAmount)}
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-[11px] text-slate-400 font-medium">Falta Pagar</div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Falta Pagar</div>
                     <div className={`text-sm sm:text-base font-black mt-0.5 ${
-                      isCompleted ? 'text-slate-500' : (activeTab === 'me_deben' ? 'text-amber-400' : 'text-rose-400')
+                      isCompleted ? 'text-slate-400 dark:text-slate-500' : (activeTab === 'me_deben' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400')
                     }`}>
                       {formatAmount(pending)}
                     </div>
@@ -353,11 +353,11 @@ export default function LoansManager() {
 
                 {/* Barra de progreso */}
                 <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-semibold text-slate-400">
+                  <div className="flex justify-between text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                     <span>Progreso de devolución</span>
                     <span>{progress}%</span>
                   </div>
-                  <div className="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden">
+                  <div className="w-full bg-slate-200 dark:bg-slate-950 rounded-full h-2.5 overflow-hidden">
                     <div
                       className={`h-full transition-all duration-500 ${
                         isCompleted ? 'bg-emerald-500' : 'bg-gradient-to-r from-amber-500 to-emerald-500'
@@ -368,7 +368,7 @@ export default function LoansManager() {
                 </div>
 
                 {/* Botones de acción rápida: Abonar parte, Prestar más */}
-                <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-800/80">
+                <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-200 dark:border-slate-800/80">
                   {!isCompleted && (
                     <button
                       onClick={() => {
@@ -378,7 +378,7 @@ export default function LoansManager() {
                         setActionMethod('Yape');
                         setActionSync(true);
                       }}
-                      className="flex-1 py-2 px-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-colors"
+                      className="flex-1 py-2 px-3 rounded-xl bg-emerald-600/15 hover:bg-emerald-600/25 dark:bg-emerald-600/20 dark:hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-colors"
                     >
                       <PlusCircle className="w-4 h-4" />
                       <span>{activeTab === 'me_deben' ? '+ Me pagó una parte' : '+ Pagué una parte'}</span>
@@ -393,7 +393,7 @@ export default function LoansManager() {
                       setActionMethod('Yape');
                       setActionSync(true);
                     }}
-                    className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-colors"
+                    className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <span>{activeTab === 'me_deben' ? '+ Prestarle más' : '+ Pedir prestado más'}</span>
                   </button>
@@ -401,7 +401,7 @@ export default function LoansManager() {
                   {/* Ver historial */}
                   <button
                     onClick={() => setExpandedLoanId(expandedLoanId === loan.id ? null : loan.id)}
-                    className="py-2 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors"
+                    className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-950 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors"
                   >
                     <span>Historial ({loan.history?.length || 1})</span>
                     {expandedLoanId === loan.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -410,25 +410,25 @@ export default function LoansManager() {
 
                 {/* Historial desplegable de cuotas y abonos */}
                 {expandedLoanId === loan.id && (
-                  <div className="mt-3 p-3 bg-slate-950 rounded-xl space-y-2 border border-slate-800 text-xs">
-                    <div className="font-bold text-slate-300 mb-1">Historial de abonos y préstamos:</div>
+                  <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-xl space-y-2 border border-slate-200 dark:border-slate-800 text-xs">
+                    <div className="font-bold text-slate-700 dark:text-slate-300 mb-1">Historial de abonos y préstamos:</div>
                     {loan.history && loan.history.map((h, idx) => (
-                      <div key={idx} className="flex items-center justify-between py-1.5 border-b border-slate-800/80 last:border-0">
+                      <div key={idx} className="flex items-center justify-between py-1.5 border-b border-slate-200 dark:border-slate-800/80 last:border-0">
                         <div>
-                          <div className="font-semibold text-slate-200 flex items-center gap-1.5">
-                            <span className={h.type === 'abono' ? 'text-emerald-400 font-bold' : 'text-indigo-400 font-bold'}>
-                              {h.type === 'abono' ? '✓ Abono recibido' : '+ Préstamo entregado'}
+                          <div className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                            <span className={h.type === 'abono' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-indigo-600 dark:text-indigo-400 font-bold'}>
+                              {h.type === 'abono' ? '✓ Abono registrado' : '+ Préstamo entregado'}
                             </span>
                             {h.paymentMethod && (
-                              <span className="text-[10px] px-1.5 py-0.2 bg-slate-800 rounded text-slate-400">
+                              <span className="text-[10px] px-1.5 py-0.2 bg-slate-200 dark:bg-slate-800 rounded text-slate-600 dark:text-slate-400">
                                 {h.paymentMethod}
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-slate-400">{h.date} {h.note ? `• ${h.note}` : ''}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">{h.date} {h.note ? `• ${h.note}` : ''}</div>
                         </div>
 
-                        <div className={`font-bold text-sm ${h.type === 'abono' ? 'text-emerald-400' : 'text-white'}`}>
+                        <div className={`font-bold text-sm ${h.type === 'abono' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
                           {h.type === 'abono' ? '+' : ''}{formatAmount(h.amount)}
                         </div>
                       </div>
@@ -444,23 +444,23 @@ export default function LoansManager() {
       {/* MODAL 1: REGISTRAR NUEVO PRÉSTAMO */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowCreateModal(false)}
-              className="absolute right-4 top-4 p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+              className="absolute right-4 top-4 p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <h3 className="text-xl font-bold text-white mb-1">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
               {activeTab === 'me_deben' ? 'Registrar Dinero Prestado' : 'Registrar Dinero que me Prestaron'}
             </h3>
-            <p className="text-xs text-slate-400 mb-4">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
               {activeTab === 'me_deben' ? 'Dinero que tú prestaste a alguien' : 'Dinero que alguien te prestó a ti'}
             </p>
 
             {errorMsg && (
-              <div className="mb-4 p-3 bg-rose-950/70 border border-rose-500/40 rounded-xl text-xs text-rose-300">
+              <div className="mb-4 p-3 bg-rose-100 dark:bg-rose-950/70 border border-rose-300 dark:border-rose-500/40 rounded-xl text-xs text-rose-700 dark:text-rose-300">
                 {errorMsg}
               </div>
             )}
@@ -468,7 +468,7 @@ export default function LoansManager() {
             <form onSubmit={handleCreateSubmit} className="space-y-4">
               {/* Persona / Familiar */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
                   {activeTab === 'me_deben' ? '¿A quién le prestaste?' : '¿Quién te prestó?'}
                 </label>
                 <input
@@ -476,20 +476,20 @@ export default function LoansManager() {
                   placeholder="Ej: Papá, Mamá, Tío Carlos, Juan..."
                   value={personName}
                   onChange={(e) => setPersonName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-sm font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-sm font-medium"
                   required
                   autoFocus
                 />
 
                 {/* Sugerencias rápidas de familiares */}
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  <span className="text-[11px] text-slate-400 self-center font-medium">Rápidos:</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 self-center font-medium">Rápidos:</span>
                   {COMMON_RELATIONS.map((rel, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => setPersonName(rel)}
-                      className="text-xs px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-indigo-900 text-slate-300 hover:text-white border border-slate-800"
+                      className="text-xs px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-100 dark:bg-slate-950 dark:hover:bg-indigo-900 text-slate-700 hover:text-indigo-900 dark:text-slate-300 dark:hover:text-white border border-slate-200 dark:border-slate-800 transition-colors"
                     >
                       {rel}
                     </button>
@@ -499,7 +499,7 @@ export default function LoansManager() {
 
               {/* Monto */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
                   ¿Cuánto dinero es? ({settings.currency || 'S/.'})
                 </label>
                 <div className="relative">
@@ -511,7 +511,7 @@ export default function LoansManager() {
                     placeholder="0.00 (puedes sumar ej: 50 + 20)"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-12 pr-4 py-3 text-2xl font-bold text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl pl-12 pr-4 py-3 text-2xl font-bold text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-indigo-500"
                     required
                   />
                 </div>
@@ -519,36 +519,36 @@ export default function LoansManager() {
 
               {/* Cuenta / Medio */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
                   Cuenta / Medio de entrega
                 </label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-sm focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold text-sm focus:outline-none focus:border-indigo-500"
                 >
                   {PAYMENT_METHODS.map(m => (
-                    <option key={m} value={m} className="bg-slate-900 text-white font-bold">{m}</option>
+                    <option key={m} value={m} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold">{m}</option>
                   ))}
                 </select>
               </div>
 
               {/* Nota opcional */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
                   Motivo o nota (opcional)
                 </label>
                 <input
                   type="text"
-                  placeholder="Ej: Para sus compras, medicina, etc."
+                  placeholder="Ej: Para compras, medicina, encargo..."
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-xs sm:text-sm"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-xs sm:text-sm"
                 />
               </div>
 
               {/* Sincronizar con movimientos generales */}
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center gap-3">
+              <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-3">
                 <input
                   type="checkbox"
                   id="syncCheck"
@@ -556,7 +556,7 @@ export default function LoansManager() {
                   onChange={(e) => setSyncTransaction(e.target.checked)}
                   className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                 />
-                <label htmlFor="syncCheck" className="text-xs text-slate-300 cursor-pointer">
+                <label htmlFor="syncCheck" className="text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
                   Registrar automáticamente en mis movimientos generales como {activeTab === 'me_deben' ? 'Salida' : 'Ingreso'}.
                 </label>
               </div>
@@ -565,7 +565,7 @@ export default function LoansManager() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm"
+                  className="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-sm"
                 >
                   Cancelar
                 </button>
@@ -587,25 +587,25 @@ export default function LoansManager() {
       {/* MODAL 2: ABONAR PARTE O PRESTAR MÁS */}
       {actionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setActionModal(null)}
-              className="absolute right-4 top-4 p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+              className="absolute right-4 top-4 p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <h3 className="text-xl font-bold text-white mb-1">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
               {actionModal.type === 'abono'
                 ? (actionModal.loan.type === 'me_deben' ? `Abono de ${actionModal.loan.personName}` : `Pago de deuda a ${actionModal.loan.personName}`)
                 : (actionModal.loan.type === 'me_deben' ? `Prestarle más a ${actionModal.loan.personName}` : `Pedir prestado más a ${actionModal.loan.personName}`)}
             </h3>
-            <p className="text-xs text-slate-400 mb-4">
-              Saldo pendiente actual: <strong className="text-amber-400">{formatAmount(Math.max(0, actionModal.loan.totalAmount - actionModal.loan.paidAmount))}</strong>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+              Saldo pendiente actual: <strong className="text-amber-600 dark:text-amber-400">{formatAmount(Math.max(0, actionModal.loan.totalAmount - actionModal.loan.paidAmount))}</strong>
             </p>
 
             {errorMsg && (
-              <div className="mb-4 p-3 bg-rose-950/70 border border-rose-500/40 rounded-xl text-xs text-rose-300">
+              <div className="mb-4 p-3 bg-rose-100 dark:bg-rose-950/70 border border-rose-300 dark:border-rose-500/40 rounded-xl text-xs text-rose-700 dark:text-rose-300">
                 {errorMsg}
               </div>
             )}
@@ -613,7 +613,7 @@ export default function LoansManager() {
             <form onSubmit={handleActionSubmit} className="space-y-4">
               {/* Monto del abono o préstamo extra */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
                   {actionModal.type === 'abono' ? '¿Cuánto dinero te pagó / abonó?' : '¿Cuánto dinero más se prestó?'} ({settings.currency || 'S/.'})
                 </label>
                 <div className="relative">
@@ -625,7 +625,7 @@ export default function LoansManager() {
                     placeholder="0.00"
                     value={actionAmount}
                     onChange={(e) => setActionAmount(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-12 pr-4 py-3 text-2xl font-bold text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl pl-12 pr-4 py-3 text-2xl font-bold text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-indigo-500"
                     required
                     autoFocus
                   />
@@ -634,23 +634,23 @@ export default function LoansManager() {
 
               {/* Cuenta / Medio */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
                   Cuenta / Medio
                 </label>
                 <select
                   value={actionMethod}
                   onChange={(e) => setActionMethod(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-sm focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold text-sm focus:outline-none focus:border-indigo-500"
                 >
                   {PAYMENT_METHODS.map(m => (
-                    <option key={m} value={m} className="bg-slate-900 text-white font-bold">{m}</option>
+                    <option key={m} value={m} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold">{m}</option>
                   ))}
                 </select>
               </div>
 
               {/* Nota opcional */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
                   Nota o detalle (opcional)
                 </label>
                 <input
@@ -658,12 +658,12 @@ export default function LoansManager() {
                   placeholder="Ej: Abono parte 1, Yape de noche..."
                   value={actionNote}
                   onChange={(e) => setActionNote(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-xs sm:text-sm"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-xs sm:text-sm"
                 />
               </div>
 
               {/* Sincronizar con movimientos generales */}
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center gap-3">
+              <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-3">
                 <input
                   type="checkbox"
                   id="syncActionCheck"
@@ -671,7 +671,7 @@ export default function LoansManager() {
                   onChange={(e) => setActionSync(e.target.checked)}
                   className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                 />
-                <label htmlFor="syncActionCheck" className="text-xs text-slate-300 cursor-pointer">
+                <label htmlFor="syncActionCheck" className="text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
                   Registrar automáticamente en mis movimientos generales.
                 </label>
               </div>
@@ -680,7 +680,7 @@ export default function LoansManager() {
                 <button
                   type="button"
                   onClick={() => setActionModal(null)}
-                  className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm"
+                  className="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-sm"
                 >
                   Cancelar
                 </button>

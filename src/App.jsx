@@ -43,7 +43,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-100 dark:bg-[#030712] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
       {/* Cabecera de Seguridad */}
       <Header
         onOpenTrash={() => setShowTrash(true)}
@@ -55,14 +55,14 @@ export default function App() {
       {/* Contenedor Principal Adaptable a Celular */}
       <main className="flex-1 max-w-2xl w-full mx-auto px-3.5 sm:px-4 py-4 space-y-4 pb-20">
         {/* Selector Principal de Vista: Movimientos vs Préstamos y Deudas */}
-        <div className="grid grid-cols-2 gap-2 p-1 bg-slate-900 border border-slate-800 rounded-2xl">
+        <div className="grid grid-cols-2 gap-2 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
           <button
             type="button"
             onClick={() => setCurrentSection('movimientos')}
             className={`py-3 px-3 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all ${
               currentSection === 'movimientos'
                 ? 'bg-indigo-600 text-white shadow-lg'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <ReceiptText className="w-5 h-5" />
@@ -75,7 +75,7 @@ export default function App() {
             className={`py-3 px-3 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all relative ${
               currentSection === 'prestamos'
                 ? 'bg-indigo-600 text-white shadow-lg'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <HandCoins className="w-5 h-5 text-amber-300" />

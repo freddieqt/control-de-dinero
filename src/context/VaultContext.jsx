@@ -38,6 +38,24 @@ export function VaultProvider({ children }) {
   const [isSetupDone, setIsSetupDone] = useState(false);
   const [isLocked, setIsLocked] = useState(true);
   const [privacyMode, setPrivacyMode] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('__vault_theme') || 'dark';
+  });
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    }
+    localStorage.setItem('__vault_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
 
   // Clave criptográfica en memoria (nunca persistida en texto plano)
   const [cryptoKey, setCryptoKey] = useState(null);
@@ -1137,6 +1155,8 @@ export function VaultProvider({ children }) {
         isSetupDone,
         isLocked,
         privacyMode,
+        theme,
+        toggleTheme,
         settings,
         currentDevice,
         transactions: activeTransactions,

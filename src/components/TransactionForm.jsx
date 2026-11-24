@@ -249,19 +249,19 @@ export default function TransactionForm() {
   const quickChips = getAllPhrases().slice(0, 4);
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl transition-colors duration-200">
       {/* Selector: Salida (Gasto) vs Ingreso */}
-      <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800 mb-4">
+      <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 mb-4">
         <button
           type="button"
           onClick={() => setType('gasto')}
           className={`py-3 px-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${
             type === 'gasto'
-              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-sm'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/50 shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <ArrowDownCircle className="w-5 h-5 text-rose-400" />
+          <ArrowDownCircle className="w-5 h-5 text-rose-500 dark:text-rose-400" />
           Registrar Salida (Gasto)
         </button>
 
@@ -270,24 +270,24 @@ export default function TransactionForm() {
           onClick={() => setType('ingreso')}
           className={`py-3 px-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${
             type === 'ingreso'
-              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-sm'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/50 shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <ArrowUpCircle className="w-5 h-5 text-emerald-400" />
+          <ArrowUpCircle className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
           Registrar Ingreso
         </button>
       </div>
 
       {errorMsg && (
-        <div className="mb-4 p-3 bg-rose-950/70 border border-rose-500/40 rounded-xl text-xs sm:text-sm text-rose-300">
+        <div className="mb-4 p-3 bg-rose-100 dark:bg-rose-950/70 border border-rose-300 dark:border-rose-500/40 rounded-xl text-xs sm:text-sm text-rose-700 dark:text-rose-300">
           {errorMsg}
         </div>
       )}
 
       {successAnim && (
-        <div className="mb-4 p-3.5 bg-emerald-950/70 border border-emerald-500/50 rounded-xl text-sm text-emerald-300 flex items-center gap-2.5">
-          <Check className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+        <div className="mb-4 p-3.5 bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-500/50 rounded-xl text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-2.5">
+          <Check className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
           <span>¡Movimiento registrado con éxito!</span>
         </div>
       )}
@@ -297,17 +297,17 @@ export default function TransactionForm() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* CATEGORÍA */}
           <div>
-            <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
               Categoría
             </label>
             <div className="relative">
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white font-medium text-sm sm:text-base focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-medium text-sm sm:text-base focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
               >
                 {currentCategories.map(cat => (
-                  <option key={cat} value={cat} className="bg-slate-900 text-white py-2">
+                  <option key={cat} value={cat} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-2">
                     {cat}
                   </option>
                 ))}
@@ -320,18 +320,18 @@ export default function TransactionForm() {
 
           {/* MEDIO DE PAGO / CUENTA */}
           <div>
-            <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5 flex items-center gap-1.5">
-              <CreditCard className="w-4 h-4 text-indigo-400" />
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5 flex items-center gap-1.5">
+              <CreditCard className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
               Cuenta / Medio
             </label>
             <div className="relative">
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-sm sm:text-base focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold text-sm sm:text-base focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
               >
                 {PAYMENT_METHODS.map(method => (
-                  <option key={method} value={method} className="bg-slate-900 text-white font-bold py-2">
+                  <option key={method} value={method} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold py-2">
                     {method}
                   </option>
                 ))}
@@ -346,8 +346,8 @@ export default function TransactionForm() {
         {/* FILA 2: MONTO CON CALCULADORA RÁPIDA INTEGRADA */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
-              <Calculator className="w-4 h-4 text-emerald-400" />
+            <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+              <Calculator className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               ¿Cuánto dinero es? ({settings.currency || 'S/.'})
             </label>
 
@@ -356,7 +356,7 @@ export default function TransactionForm() {
               <button
                 type="button"
                 onClick={() => handleInsertOperator('+')}
-                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold flex items-center justify-center transition-colors"
+                className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-sm font-bold flex items-center justify-center transition-colors"
                 title="Sumar"
               >
                 +
@@ -364,7 +364,7 @@ export default function TransactionForm() {
               <button
                 type="button"
                 onClick={() => handleInsertOperator('-')}
-                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold flex items-center justify-center transition-colors"
+                className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-sm font-bold flex items-center justify-center transition-colors"
                 title="Restar"
               >
                 -
@@ -372,7 +372,7 @@ export default function TransactionForm() {
               <button
                 type="button"
                 onClick={() => handleInsertOperator('*')}
-                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold flex items-center justify-center transition-colors"
+                className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-sm font-bold flex items-center justify-center transition-colors"
                 title="Multiplicar"
               >
                 ×
@@ -395,7 +395,7 @@ export default function TransactionForm() {
                   setCalcPreview(null);
                 }
               }}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-12 pr-4 py-3 text-xl sm:text-2xl font-bold text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl pl-12 pr-4 py-3 text-xl sm:text-2xl font-bold text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-indigo-500"
               required
             />
           </div>
@@ -404,13 +404,13 @@ export default function TransactionForm() {
           {calcPreview !== null && (
             <div
               onClick={handleApplyCalc}
-              className="mt-2 p-2.5 bg-emerald-950/80 border border-emerald-500/50 rounded-xl flex items-center justify-between text-xs sm:text-sm text-emerald-300 cursor-pointer hover:bg-emerald-900/60 transition-colors"
+              className="mt-2 p-2.5 bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-500/50 rounded-xl flex items-center justify-between text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 cursor-pointer hover:bg-emerald-200 dark:hover:bg-emerald-900/60 transition-colors"
             >
               <div className="flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-emerald-400" />
+                <Calculator className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>Calculadora: <strong>= {settings.currency} {calcPreview.toFixed(2)}</strong></span>
               </div>
-              <span className="text-[11px] bg-emerald-500/20 px-2 py-0.5 rounded font-bold text-emerald-200">
+              <span className="text-[11px] bg-emerald-200 dark:bg-emerald-500/20 px-2 py-0.5 rounded font-bold text-emerald-800 dark:text-emerald-200">
                 Toca para aplicar ↵
               </span>
             </div>
@@ -419,7 +419,7 @@ export default function TransactionForm() {
 
         {/* FILA 3: MOTIVO */}
         <div className="relative">
-          <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+          <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
             Motivo
           </label>
 
@@ -434,7 +434,7 @@ export default function TransactionForm() {
               }
             }}
             placeholder="Escribe el motivo..."
-            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-sm sm:text-base font-normal"
+            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3.5 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-sm sm:text-base font-normal"
             required
             autoComplete="off"
           />
@@ -443,21 +443,21 @@ export default function TransactionForm() {
           {showDropdown && suggestions.length > 0 && (
             <div
               ref={dropdownRef}
-              className="absolute left-0 right-0 top-full mt-1.5 bg-slate-950 border border-slate-700 rounded-xl shadow-2xl z-40 overflow-hidden divide-y divide-slate-800 max-h-60 overflow-y-auto"
+              className="absolute left-0 right-0 top-full mt-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-40 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-60 overflow-y-auto"
             >
-              <div className="px-3.5 py-2 bg-slate-900 text-xs font-semibold text-indigo-300 flex items-center justify-between">
+              <div className="px-3.5 py-2 bg-slate-50 dark:bg-slate-900 text-xs font-semibold text-indigo-600 dark:text-indigo-300 flex items-center justify-between">
                 <span>Opciones para terminar tu frase rápido</span>
-                <span className="text-[11px] text-slate-400">Toca para escoger</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">Toca para escoger</span>
               </div>
               {suggestions.map((phrase, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => handleSelectSuggestion(phrase)}
-                  className="w-full px-4 py-3 text-left text-sm text-slate-100 hover:bg-indigo-600/25 hover:text-white flex items-center justify-between transition-colors"
+                  className="w-full px-4 py-3 text-left text-sm text-slate-800 dark:text-slate-100 hover:bg-indigo-50 dark:hover:bg-indigo-600/25 transition-colors"
                 >
                   <span className="truncate font-medium">{phrase}</span>
-                  <span className="text-xs text-indigo-400 font-semibold ml-2 flex-shrink-0">
+                  <span className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold ml-2 flex-shrink-0">
                     Completar ↵
                   </span>
                 </button>
@@ -467,13 +467,13 @@ export default function TransactionForm() {
 
           {/* Opciones rápidas */}
           <div className="mt-2 flex flex-wrap gap-2">
-            <span className="text-xs text-slate-400 self-center font-medium">Opciones:</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 self-center font-medium">Opciones:</span>
             {quickChips.map((chip, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => handleSelectSuggestion(chip)}
-                className="text-xs px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-indigo-900 text-slate-300 hover:text-white border border-slate-800 hover:border-indigo-500 transition-all"
+                className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-950 hover:bg-indigo-50 dark:hover:bg-indigo-900 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all"
               >
                 + {chip}
               </button>
@@ -482,12 +482,12 @@ export default function TransactionForm() {
         </div>
 
         {/* FECHA Y HORA ACTUAL FIJA */}
-        <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs sm:text-sm">
-          <div className="flex items-center gap-2 text-slate-300">
-            <Clock className="w-4 h-4 text-emerald-400" />
+        <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs sm:text-sm">
+          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+            <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>Fecha y hora de registro:</span>
           </div>
-          <div className="font-semibold text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded-md border border-emerald-500/30">
+          <div className="font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-md border border-emerald-200 dark:border-emerald-500/30">
             {currentDateTimeStr || 'Actual automática'} (Fija)
           </div>
         </div>
