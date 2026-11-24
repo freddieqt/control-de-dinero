@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'BovedaFinancieraDB';
-const DB_VERSION = 2;
+const DB_VERSION = 2; // Actualizado a versión 2 para préstamos
 
 let dbInstance = null;
 
@@ -22,6 +22,12 @@ export async function getDb() {
         txStore.createIndex('by_deleted', 'isDeleted');
       }
 
+      // Almacén para préstamos y deudas cifrados
+      if (!db.objectStoreNames.contains('loans')) {
+        const loanStore = db.createObjectStore('loans', { keyPath: 'id' });
+        loanStore.createIndex('by_timestamp', 'timestamp');
+      }
+
       // Almacén para auditoría inmutable
       if (!db.objectStoreNames.contains('audit_log')) {
         const auditStore = db.createObjectStore('audit_log', { keyPath: 'id' });
@@ -32,14 +38,6 @@ export async function getDb() {
       if (!db.objectStoreNames.contains('phrases')) {
         const phraseStore = db.createObjectStore('phrases', { keyPath: 'id' });
         phraseStore.createIndex('by_type', 'type');
-      }
-
-      // Almacén para préstamos cifrados (Versión 2)
-      if (!db.objectStoreNames.contains('loans')) {
-        const loanStore = db.createObjectStore('loans', { keyPath: 'id' });
-        loanStore.createIndex('by_type', 'type');
-        loanStore.createIndex('by_status', 'status');
-        loanStore.createIndex('by_timestamp', 'timestamp');
       }
     }
   });
@@ -60,7 +58,7 @@ export async function getAuthData() {
   const settings = await db.get('auth', 'settings');
   const devices = await db.get('auth', 'devices');
 
-  if (!salt) return null; // Aún no inicializado
+  if (!salt) return null;
 
   return {
     salt,
@@ -108,14 +106,14 @@ export async function getAllStoredLoans() {
 
 export async function putStoredLoan(record) {
   const db = await getDb();
+  if (!db.objectStoreNames.contains('loans')) return;
   await db.put('loans', record);
 }
 
 export async function deleteStoredLoan(id) {
   const db = await getDb();
-  if (db.objectStoreNames.contains('loans')) {
-    await db.delete('loans', id);
-  }
+  if (!db.objectStoreNames.contains('loans')) return;
+  await db.delete('loans', id);
 }
 
 // ==========================================
@@ -146,7 +144,7 @@ export async function getStoredPhrases() {
 }
 
 export async function saveLearnedPhrase(phraseText, type) {
-  if (!phraseText || phraseText.trim().length < 3) return;
+  if (!phraseText || phraseText.trim().length < 2) return;
   const clean = phraseText.trim();
   const db = await getDb();
   
@@ -169,17 +167,17 @@ export async function saveLearnedPhrase(phraseText, type) {
 }
 
 // ==========================================
-// REINICIO / BORRADO TOTAL DE EMERGENCIA
+// REINICIO TOTAL DE EMERGENCIA
 // ==========================================
 
 export async function wipeEntireDatabase() {
   const db = await getDb();
   await db.clear('auth');
   await db.clear('transactions');
-  await db.clear('audit_log');
-  await db.clear('phrases');
   if (db.objectStoreNames.contains('loans')) {
     await db.clear('loans');
   }
+  await db.clear('audit_log');
+  await db.clear('phrases');
   localStorage.removeItem('__vault_device_salt');
 }

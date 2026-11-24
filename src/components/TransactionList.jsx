@@ -7,14 +7,14 @@ import {
   Trash2,
   Clock,
   ShieldCheck,
-  Calendar
+  CalendarDays
 } from 'lucide-react';
 
 export default function TransactionList() {
   const { transactions, softDeleteTransaction, privacyMode, settings } = useVault();
 
   const [filterType, setFilterType] = useState('all'); // 'all', 'gasto', 'ingreso'
-  const [timeFilter, setTimeFilter] = useState('all'); // 'all', 'today', 'week', 'month'
+  const [timeFilter, setTimeFilter] = useState('all'); // 'today', 'week', 'month', 'all'
   const [searchQuery, setSearchQuery] = useState('');
 
   const formatAmount = (num) => {
@@ -22,30 +22,25 @@ export default function TransactionList() {
     return `${settings.currency || 'S/.'} ${(num || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  // Tiempos de corte
   const now = new Date();
-  const todayStr = now.toDateString();
-  const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1; // Lunes como inicio de semana
+  const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek).getTime();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
 
-  // Filtrar transacciones activas por tipo, tiempo y buscador
+  // Filtrar transacciones activas
   const filtered = transactions
     .filter(t => {
-      // 1. Tipo (Todos, Gasto, Ingreso)
+      // Filtro tipo (gasto/ingreso)
       if (filterType !== 'all' && t.type !== filterType) return false;
 
-      // 2. Tiempo (Hoy, Esta semana, Este mes)
-      if (timeFilter === 'today') {
-        const txDate = new Date(t.timestamp).toDateString();
-        if (txDate !== todayStr) return false;
-      } else if (timeFilter === 'week') {
-        if (t.timestamp < oneWeekAgo) return false;
-      } else if (timeFilter === 'month') {
-        const d = new Date(t.timestamp);
-        if (d.getMonth() !== currentMonth || d.getFullYear() !== currentYear) return false;
-      }
+      // Filtro de tiempo
+      if (timeFilter === 'today' && (t.timestamp || 0) < startOfToday) return false;
+      if (timeFilter === 'week' && (t.timestamp || 0) < startOfWeek) return false;
+      if (timeFilter === 'month' && (t.timestamp || 0) < startOfMonth) return false;
 
-      // 3. Buscador por texto
+      // Buscador
       if (searchQuery.trim() !== '') {
         const q = searchQuery.toLowerCase();
         return (
@@ -59,81 +54,104 @@ export default function TransactionList() {
     })
     .sort((a, b) => b.timestamp - a.timestamp);
 
-  const filteredGastos = filtered
+  // Totales del período filtrado
+  const periodExpenses = filtered
     .filter(t => t.type === 'gasto')
-    .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-  const filteredIngresos = filtered
+    .reduce((acc, t) => acc + (t.amount || 0), 0);
+  const periodIncome = filtered
     .filter(t => t.type === 'ingreso')
-    .reduce((sum, t) => sum + (t.amount || 0), 0);
+    .reduce((acc, t) => acc + (t.amount || 0), 0);
 
   return (
     <div className="space-y-3 pt-2">
-      {/* 1. Barra de Filtro de Tiempo: [Todos] [Hoy] [Esta semana] [Este mes] */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-        <span className="text-xs text-slate-400 flex items-center gap-1 font-semibold mr-1 flex-shrink-0">
-          <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-          Tiempo:
-        </span>
-        <button
-          onClick={() => setTimeFilter('all')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex-shrink-0 ${
-            timeFilter === 'all'
-              ? 'bg-indigo-600 text-white shadow'
-              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-          }`}
-        >
-          Todo el tiempo
-        </button>
-        <button
-          onClick={() => setTimeFilter('today')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex-shrink-0 ${
-            timeFilter === 'today'
-              ? 'bg-indigo-600 text-white shadow'
-              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-          }`}
-        >
-          Hoy
-        </button>
-        <button
-          onClick={() => setTimeFilter('week')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex-shrink-0 ${
-            timeFilter === 'week'
-              ? 'bg-indigo-600 text-white shadow'
-              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-          }`}
-        >
-          Esta semana
-        </button>
-        <button
-          onClick={() => setTimeFilter('month')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex-shrink-0 ${
-            timeFilter === 'month'
-              ? 'bg-indigo-600 text-white shadow'
-              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-          }`}
-        >
-          Este mes
-        </button>
+      {/* 1. Barra de Filtro de Tiempo (Hoy, Esta Semana, Este Mes, Todos) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-2.5 space-y-2">
+        <div className="flex items-center justify-between text-xs text-slate-300 font-semibold mb-1">
+          <span className="flex items-center gap-1.5">
+            <CalendarDays className="w-4 h-4 text-indigo-400" />
+            Filtrar por tiempo:
+          </span>
+          <span className="text-[11px] text-slate-400">
+            {filtered.length} {filtered.length === 1 ? 'registro' : 'registros'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-4 gap-1.5">
+          <button
+            type="button"
+            onClick={() => setTimeFilter('today')}
+            className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
+              timeFilter === 'today'
+                ? 'bg-indigo-600 text-white shadow'
+                : 'bg-slate-950 text-slate-400 hover:text-white'
+            }`}
+          >
+            Hoy
+          </button>
+          <button
+            type="button"
+            onClick={() => setTimeFilter('week')}
+            className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
+              timeFilter === 'week'
+                ? 'bg-indigo-600 text-white shadow'
+                : 'bg-slate-950 text-slate-400 hover:text-white'
+            }`}
+          >
+            Esta Semana
+          </button>
+          <button
+            type="button"
+            onClick={() => setTimeFilter('month')}
+            className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
+              timeFilter === 'month'
+                ? 'bg-indigo-600 text-white shadow'
+                : 'bg-slate-950 text-slate-400 hover:text-white'
+            }`}
+          >
+            Este Mes
+          </button>
+          <button
+            type="button"
+            onClick={() => setTimeFilter('all')}
+            className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
+              timeFilter === 'all'
+                ? 'bg-indigo-600 text-white shadow'
+                : 'bg-slate-950 text-slate-400 hover:text-white'
+            }`}
+          >
+            Todos
+          </button>
+        </div>
+
+        {/* Resumen del período seleccionado */}
+        <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-semibold">
+          <span className="text-slate-400">
+            {timeFilter === 'today' ? 'Hoy:' : timeFilter === 'week' ? 'En la semana:' : timeFilter === 'month' ? 'En el mes:' : 'Total filtrado:'}
+          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-rose-400">Salidas: -{formatAmount(periodExpenses)}</span>
+            <span className="text-slate-600">•</span>
+            <span className="text-emerald-400">Ingresos: +{formatAmount(periodIncome)}</span>
+          </div>
+        </div>
       </div>
 
-      {/* 2. Barra de Filtros por Tipo (Todos, Salidas, Ingresos) y Buscador */}
+      {/* 2. Filtro Tipo (Salidas / Ingresos) y Buscador */}
       <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
-        {/* Pestañas de tipo */}
         <div className="flex items-center gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800 self-start">
           <button
             onClick={() => setFilterType('all')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-colors ${
               filterType === 'all'
                 ? 'bg-slate-800 text-white shadow'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Todos ({filtered.length})
+            Todos
           </button>
           <button
             onClick={() => setFilterType('gasto')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-colors ${
               filterType === 'gasto'
                 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50'
                 : 'text-slate-400 hover:text-white'
@@ -143,7 +161,7 @@ export default function TransactionList() {
           </button>
           <button
             onClick={() => setFilterType('ingreso')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-colors ${
               filterType === 'ingreso'
                 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50'
                 : 'text-slate-400 hover:text-white'
@@ -160,29 +178,17 @@ export default function TransactionList() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por categoría, motivo, Yape..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3.5 py-1.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            placeholder="Buscar por categoría, motivo, Yape, BCP..."
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3.5 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
         </div>
       </div>
 
-      {/* Resumen dinámico del filtro de tiempo seleccionado */}
-      <div className="p-2.5 bg-slate-950/70 border border-slate-800 rounded-xl flex items-center justify-between text-xs text-slate-300 flex-wrap gap-2">
-        <span className="font-medium text-slate-400">
-          {timeFilter === 'today' ? '📅 Movimientos de Hoy:' : (timeFilter === 'week' ? '📅 Movimientos de Esta Semana:' : (timeFilter === 'month' ? '📅 Movimientos de Este Mes:' : '📅 Total en Pantalla:'))}
-        </span>
-        <div className="flex items-center gap-3 font-bold">
-          <span className="text-rose-400">Salidas: -{formatAmount(filteredGastos)}</span>
-          <span>•</span>
-          <span className="text-emerald-400">Ingresos: +{formatAmount(filteredIngresos)}</span>
-        </div>
-      </div>
-
-      {/* Lista de Registros */}
+      {/* 3. Lista de Registros */}
       {filtered.length === 0 ? (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center">
-          <p className="text-sm sm:text-base font-semibold text-slate-300">No hay movimientos en este período de tiempo.</p>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">Prueba cambiando el filtro de tiempo a "Todo el tiempo".</p>
+          <p className="text-sm sm:text-base font-semibold text-slate-300">No hay movimientos en este período.</p>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">Usa el formulario de arriba para registrar uno nuevo.</p>
         </div>
       ) : (
         <div className="space-y-2.5">
@@ -223,7 +229,7 @@ export default function TransactionList() {
                       {item.type === 'gasto' ? 'SALIDA' : 'INGRESO'}
                     </span>
 
-                    {/* MEDIO DE PAGO / CUENTA */}
+                    {/* MEDIO DE PAGO / CUENTA (Yape, BCP, SIP, PLIN, LEMON, BBVA) */}
                     {item.paymentMethod && (
                       <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                         {item.paymentMethod}

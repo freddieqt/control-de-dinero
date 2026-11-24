@@ -298,22 +298,26 @@ export function VaultProvider({ children }) {
       const phrases = await getStoredPhrases();
       setLearnedPhrases(phrases || []);
 
-      // 7. Cargar préstamos cifrados
+      // 7. Cargar auditoría
+      const logs = await getAllAuditLogs();
+      setAuditLogs(logs);
+
+      // 8. Cargar y descifrar préstamos
       const rawLoans = await getAllStoredLoans();
       const decryptedLoans = [];
       for (const item of rawLoans) {
         try {
           const payload = await decryptData(aesKey, item.cipherPayload, item.iv);
-          decryptedLoans.push({ ...payload, id: item.id, timestamp: item.timestamp });
-        } catch (loanErr) {
-          console.error("Error descifrando prestamo " + item.id, loanErr);
+          decryptedLoans.push({
+            ...payload,
+            id: item.id,
+            timestamp: item.timestamp
+          });
+        } catch (decryptErr) {
+          console.error("Error descifrando préstamo " + item.id, decryptErr);
         }
       }
       setLoans(decryptedLoans);
-
-      // 8. Cargar auditoría
-      const logs = await getAllAuditLogs();
-      setAuditLogs(logs);
 
       // Actualizar estado activo
       setCryptoKey(aesKey);
@@ -616,209 +620,6 @@ export function VaultProvider({ children }) {
     resetInactivityTimer();
   };
 
-  // --- GESTIÓN INTELIGENTE DE PRÉSTAMOS ---
-  const addLoan = async ({ type, person, initialAmount, paymentMethod, note }) => {
-    if (!cryptoKey || isLocked) throw new Error("La bóveda está bloqueada");
-
-    const amountNum = parseFloat(initialAmount);
-    if (isNaN(amountNum) || amountNum <= 0) throw new Error("Monto no válido");
-    if (!person || !person.trim()) throw new Error("Especifica a qué familiar o persona");
-
-    const now = Date.now();
-    const id = 'loan_' + now + '_' + Math.random().toString(36).substring(2, 6);
-    const dateFormatted = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const timeFormatted = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-    const loanPlain = {
-      id,
-      type, // 'yo_preste' (me deben) | 'me_prestaron' (yo debo)
-      person: person.trim(),
-      initialAmount: amountNum,
-      remainingAmount: amountNum,
-      paymentMethod: paymentMethod || 'Yape',
-      note: note ? note.trim() : '',
-      payments: [],
-      history: [
-        {
-          id: 'h_' + now,
-          type: 'inicial',
-          amount: amountNum,
-          date: dateFormatted,
-          time: timeFormatted,
-          paymentMethod: paymentMethod || 'Yape',
-          note: note ? note.trim() : ''
-        }
-      ],
-      status: 'pendiente',
-      timestamp: now,
-      createdAt: now
-    };
-
-    const encrypted = await encryptData(cryptoKey, loanPlain);
-    await putStoredLoan({
-      id,
-      cipherPayload: encrypted.ciphertext,
-      iv: encrypted.iv,
-      type,
-      status: 'pendiente',
-      timestamp: now
-    });
-
-    // Sincronizar automáticamente con las transacciones
-    await addTransaction({
-      type: type === 'yo_preste' ? 'gasto' : 'ingreso',
-      amount: amountNum,
-      category: 'Préstamos',
-      paymentMethod: paymentMethod || 'Yape',
-      description: type === 'yo_preste' ? `Préstamo a ${person.trim()}` : `Préstamo recibido de ${person.trim()}`,
-      date: `${dateFormatted} • ${timeFormatted}`,
-      notes: note || ''
-    });
-
-    setLoans(prev => [...prev, loanPlain]);
-    return loanPlain;
-  };
-
-  const addLoanAbono = async (loanId, { amount, paymentMethod, note }) => {
-    if (!cryptoKey || isLocked) throw new Error("La bóveda está bloqueada");
-
-    const abonoNum = parseFloat(amount);
-    if (isNaN(abonoNum) || abonoNum <= 0) throw new Error("Monto de abono no válido");
-
-    const loan = loans.find(l => l.id === loanId);
-    if (!loan) throw new Error("Préstamo no encontrado");
-
-    const now = Date.now();
-    const dateFormatted = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const timeFormatted = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-    const newRemaining = Math.max(0, Math.round((loan.remainingAmount - abonoNum) * 100) / 100);
-    const newStatus = newRemaining === 0 ? 'pagado' : 'pendiente';
-
-    const newPayment = {
-      id: 'pay_' + now,
-      amount: abonoNum,
-      paymentMethod: paymentMethod || 'Yape',
-      note: note ? note.trim() : '',
-      date: dateFormatted,
-      time: timeFormatted,
-      timestamp: now
-    };
-
-    const updatedLoan = {
-      ...loan,
-      remainingAmount: newRemaining,
-      status: newStatus,
-      payments: [...loan.payments, newPayment],
-      history: [
-        ...loan.history,
-        {
-          id: 'h_abono_' + now,
-          type: 'abono',
-          amount: abonoNum,
-          date: dateFormatted,
-          time: timeFormatted,
-          paymentMethod: paymentMethod || 'Yape',
-          note: note ? note.trim() : ''
-        }
-      ],
-      lastPaymentAt: now
-    };
-
-    const encrypted = await encryptData(cryptoKey, updatedLoan);
-    await putStoredLoan({
-      id: loan.id,
-      cipherPayload: encrypted.ciphertext,
-      iv: encrypted.iv,
-      type: loan.type,
-      status: newStatus,
-      timestamp: loan.timestamp
-    });
-
-    // Si yo presté y me abonan -> Ingreso
-    // Si me prestaron y abono -> Salida
-    await addTransaction({
-      type: loan.type === 'yo_preste' ? 'ingreso' : 'gasto',
-      amount: abonoNum,
-      category: 'Préstamos',
-      paymentMethod: paymentMethod || 'Yape',
-      description: loan.type === 'yo_preste'
-        ? `Abono de préstamo de ${loan.person}`
-        : `Pago de préstamo a ${loan.person}`,
-      date: `${dateFormatted} • ${timeFormatted}`,
-      notes: note || ''
-    });
-
-    setLoans(prev => prev.map(l => l.id === loanId ? updatedLoan : l));
-    return updatedLoan;
-  };
-
-  const addLoanExtra = async (loanId, { amount, paymentMethod, note }) => {
-    if (!cryptoKey || isLocked) throw new Error("La bóveda está bloqueada");
-
-    const extraNum = parseFloat(amount);
-    if (isNaN(extraNum) || extraNum <= 0) throw new Error("Monto no válido");
-
-    const loan = loans.find(l => l.id === loanId);
-    if (!loan) throw new Error("Préstamo no encontrado");
-
-    const now = Date.now();
-    const dateFormatted = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const timeFormatted = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-    const newInitial = loan.initialAmount + extraNum;
-    const newRemaining = loan.remainingAmount + extraNum;
-
-    const updatedLoan = {
-      ...loan,
-      initialAmount: newInitial,
-      remainingAmount: newRemaining,
-      status: 'pendiente',
-      history: [
-        ...loan.history,
-        {
-          id: 'h_extra_' + now,
-          type: 'ampliacion',
-          amount: extraNum,
-          date: dateFormatted,
-          time: timeFormatted,
-          paymentMethod: paymentMethod || 'Yape',
-          note: note ? note.trim() : 'Préstamo adicional'
-        }
-      ]
-    };
-
-    const encrypted = await encryptData(cryptoKey, updatedLoan);
-    await putStoredLoan({
-      id: loan.id,
-      cipherPayload: encrypted.ciphertext,
-      iv: encrypted.iv,
-      type: loan.type,
-      status: 'pendiente',
-      timestamp: loan.timestamp
-    });
-
-    await addTransaction({
-      type: loan.type === 'yo_preste' ? 'gasto' : 'ingreso',
-      amount: extraNum,
-      category: 'Préstamos',
-      paymentMethod: paymentMethod || 'Yape',
-      description: loan.type === 'yo_preste'
-        ? `Préstamo adicional a ${loan.person}`
-        : `Préstamo adicional recibido de ${loan.person}`,
-      date: `${dateFormatted} • ${timeFormatted}`,
-      notes: note || ''
-    });
-
-    setLoans(prev => prev.map(l => l.id === loanId ? updatedLoan : l));
-    return updatedLoan;
-  };
-
-  const deleteLoan = async (loanId) => {
-    await deleteStoredLoan(loanId);
-    setLoans(prev => prev.filter(l => l.id !== loanId));
-  };
-
   // 12. Alternar Modo Privacidad
   const togglePrivacyMode = async () => {
     const newMode = !privacyMode;
@@ -996,7 +797,315 @@ export function VaultProvider({ children }) {
     return result;
   };
 
-  // 16. Cálculos de Saldo Total
+  // 16. MÓDULO DE PRÉSTAMOS Y DEUDAS
+  const createLoan = async ({
+    type,
+    personName,
+    personRelation = 'Familiar',
+    amount,
+    paymentMethod = 'Yape',
+    note = '',
+    syncTransaction = true
+  }) => {
+    if (!cryptoKey || isLocked) throw new Error("La bóveda está bloqueada");
+
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      throw new Error("El monto debe ser mayor a 0");
+    }
+
+    if (!personName || !personName.trim()) {
+      throw new Error("Ingresa el nombre o parentesco de la persona");
+    }
+
+    const now = Date.now();
+    const id = 'loan_' + now + '_' + Math.random().toString(36).substring(2, 6);
+    const dateFormatted = new Date(now).toLocaleDateString('es-PE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    const timeFormatted = new Date(now).toLocaleTimeString('es-PE', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+    const dateTimeStr = `${dateFormatted} • ${timeFormatted}`;
+
+    const loanPlain = {
+      id,
+      type,
+      personName: personName.trim(),
+      personRelation: personRelation.trim(),
+      totalAmount: numAmount,
+      paidAmount: 0,
+      status: 'pendiente',
+      paymentMethod,
+      note: note.trim(),
+      history: [
+        {
+          id: 'h_' + now,
+          date: dateTimeStr,
+          type: 'prestamo',
+          amount: numAmount,
+          paymentMethod,
+          note: note.trim() || (type === 'me_deben' ? 'Préstamo inicial' : 'Préstamo recibido')
+        }
+      ],
+      createdAt: now,
+      timestamp: now
+    };
+
+    const encrypted = await encryptData(cryptoKey, loanPlain);
+    await putStoredLoan({
+      id,
+      cipherPayload: encrypted.ciphertext,
+      iv: encrypted.iv,
+      timestamp: now
+    });
+
+    if (syncTransaction) {
+      if (type === 'me_deben') {
+        await addTransaction({
+          type: 'gasto',
+          amount: numAmount,
+          category: 'Préstamos',
+          paymentMethod,
+          description: `Préstamo a ${personName.trim()}${note.trim() ? ' - ' + note.trim() : ''}`
+        });
+      } else {
+        await addTransaction({
+          type: 'ingreso',
+          amount: numAmount,
+          category: 'Préstamos',
+          paymentMethod,
+          description: `Préstamo recibido de ${personName.trim()}${note.trim() ? ' - ' + note.trim() : ''}`
+        });
+      }
+    }
+
+    await appendAuditLog({
+      id: 'audit_' + now,
+      action: 'PRESTAMO_REGISTRADO',
+      timestamp: now,
+      deviceId: currentDevice?.id || 'unknown',
+      details: `${type === 'me_deben' ? 'Préstamo a' : 'Préstamo de'} ${personName.trim()} por ${settings.currency} ${numAmount.toFixed(2)}`,
+      status: 'OK'
+    });
+
+    setLoans(prev => [loanPlain, ...prev]);
+    return loanPlain;
+  };
+
+  const addLoanPayment = async ({
+    loanId,
+    amount,
+    paymentMethod = 'Yape',
+    note = '',
+    syncTransaction = true
+  }) => {
+    if (!cryptoKey || isLocked) throw new Error("La bóveda está bloqueada");
+
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      throw new Error("El monto del abono debe ser mayor a 0");
+    }
+
+    const existingIndex = loans.findIndex(l => l.id === loanId);
+    if (existingIndex === -1) throw new Error("Préstamo no encontrado");
+
+    const current = loans[existingIndex];
+    const now = Date.now();
+    const dateFormatted = new Date(now).toLocaleDateString('es-PE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    const timeFormatted = new Date(now).toLocaleTimeString('es-PE', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+    const dateTimeStr = `${dateFormatted} • ${timeFormatted}`;
+
+    const newPaid = (current.paidAmount || 0) + numAmount;
+    const newStatus = newPaid >= current.totalAmount ? 'pagado' : 'pendiente';
+
+    const updatedLoan = {
+      ...current,
+      paidAmount: newPaid,
+      status: newStatus,
+      updatedAt: now,
+      history: [
+        ...current.history,
+        {
+          id: 'h_' + now,
+          date: dateTimeStr,
+          type: 'abono',
+          amount: numAmount,
+          paymentMethod,
+          note: note.trim() || 'Abono / Pago de parte'
+        }
+      ]
+    };
+
+    const encrypted = await encryptData(cryptoKey, updatedLoan);
+    await putStoredLoan({
+      id: loanId,
+      cipherPayload: encrypted.ciphertext,
+      iv: encrypted.iv,
+      timestamp: current.timestamp
+    });
+
+    if (syncTransaction) {
+      if (current.type === 'me_deben') {
+        await addTransaction({
+          type: 'ingreso',
+          amount: numAmount,
+          category: 'Préstamos',
+          paymentMethod,
+          description: `Cobro de préstamo a ${current.personName}${note.trim() ? ' - ' + note.trim() : ''}`
+        });
+      } else {
+        await addTransaction({
+          type: 'gasto',
+          amount: numAmount,
+          category: 'Préstamos',
+          paymentMethod,
+          description: `Pago de deuda a ${current.personName}${note.trim() ? ' - ' + note.trim() : ''}`
+        });
+      }
+    }
+
+    await appendAuditLog({
+      id: 'audit_' + now,
+      action: 'ABONO_PRESTAMO',
+      timestamp: now,
+      deviceId: currentDevice?.id || 'unknown',
+      details: `Abono de ${settings.currency} ${numAmount.toFixed(2)} a ${current.personName} (${newStatus === 'pagado' ? 'PAGADO COMPLETO' : 'Pendiente'})`,
+      status: 'OK'
+    });
+
+    const updatedLoans = [...loans];
+    updatedLoans[existingIndex] = updatedLoan;
+    setLoans(updatedLoans);
+    return updatedLoan;
+  };
+
+  const addLoanExtraAmount = async ({
+    loanId,
+    additionalAmount,
+    paymentMethod = 'Yape',
+    note = '',
+    syncTransaction = true
+  }) => {
+    if (!cryptoKey || isLocked) throw new Error("La bóveda está bloqueada");
+
+    const numAmount = parseFloat(additionalAmount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      throw new Error("El monto adicional debe ser mayor a 0");
+    }
+
+    const existingIndex = loans.findIndex(l => l.id === loanId);
+    if (existingIndex === -1) throw new Error("Préstamo no encontrado");
+
+    const current = loans[existingIndex];
+    const now = Date.now();
+    const dateFormatted = new Date(now).toLocaleDateString('es-PE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    const timeFormatted = new Date(now).toLocaleTimeString('es-PE', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+    const dateTimeStr = `${dateFormatted} • ${timeFormatted}`;
+
+    const newTotal = (current.totalAmount || 0) + numAmount;
+    const newStatus = (current.paidAmount || 0) >= newTotal ? 'pagado' : 'pendiente';
+
+    const updatedLoan = {
+      ...current,
+      totalAmount: newTotal,
+      status: newStatus,
+      updatedAt: now,
+      history: [
+        ...current.history,
+        {
+          id: 'h_' + now,
+          date: dateTimeStr,
+          type: 'prestamo',
+          amount: numAmount,
+          paymentMethod,
+          note: note.trim() || 'Préstamo adicional acumulado'
+        }
+      ]
+    };
+
+    const encrypted = await encryptData(cryptoKey, updatedLoan);
+    await putStoredLoan({
+      id: loanId,
+      cipherPayload: encrypted.ciphertext,
+      iv: encrypted.iv,
+      timestamp: current.timestamp
+    });
+
+    if (syncTransaction) {
+      if (current.type === 'me_deben') {
+        await addTransaction({
+          type: 'gasto',
+          amount: numAmount,
+          category: 'Préstamos',
+          paymentMethod,
+          description: `Préstamo adicional a ${current.personName}${note.trim() ? ' - ' + note.trim() : ''}`
+        });
+      } else {
+        await addTransaction({
+          type: 'ingreso',
+          amount: numAmount,
+          category: 'Préstamos',
+          paymentMethod,
+          description: `Préstamo adicional recibido de ${current.personName}${note.trim() ? ' - ' + note.trim() : ''}`
+        });
+      }
+    }
+
+    await appendAuditLog({
+      id: 'audit_' + now,
+      action: 'PRESTAMO_ACUMULADO',
+      timestamp: now,
+      deviceId: currentDevice?.id || 'unknown',
+      details: `Préstamo adicional de ${settings.currency} ${numAmount.toFixed(2)} a ${current.personName}. Nuevo total: ${settings.currency} ${newTotal.toFixed(2)}`,
+      status: 'OK'
+    });
+
+    const updatedLoans = [...loans];
+    updatedLoans[existingIndex] = updatedLoan;
+    setLoans(updatedLoans);
+    return updatedLoan;
+  };
+
+  const deleteLoan = async (loanId) => {
+    if (!cryptoKey || isLocked) throw new Error("La bóveda está bloqueada");
+
+    const current = loans.find(l => l.id === loanId);
+    await deleteStoredLoan(loanId);
+
+    await appendAuditLog({
+      id: 'audit_' + Date.now(),
+      action: 'PRESTAMO_ELIMINADO',
+      timestamp: Date.now(),
+      deviceId: currentDevice?.id || 'unknown',
+      details: `Registro de préstamo de ${current?.personName || loanId} eliminado.`,
+      status: 'ADVERTENCIA'
+    });
+
+    setLoans(prev => prev.filter(l => l.id !== loanId));
+  };
+
+  // 17. Cálculos de Saldo Total
   const activeTransactions = transactions.filter(t => !t.isDeleted);
   const totalIngresos = activeTransactions
     .filter(t => t.type === 'ingreso')
@@ -1006,18 +1115,20 @@ export function VaultProvider({ children }) {
     .filter(t => t.type === 'gasto')
     .reduce((sum, t) => sum + (t.amount || 0), 0);
 
+  // Totales de préstamos
+  const totalMeDeben = loans
+    .filter(l => l.type === 'me_deben' && l.status !== 'pagado')
+    .reduce((sum, l) => sum + Math.max(0, (l.totalAmount || 0) - (l.paidAmount || 0)), 0);
+
+  const totalYoDebo = loans
+    .filter(l => l.type === 'yo_debo' && l.status !== 'pagado')
+    .reduce((sum, l) => sum + Math.max(0, (l.totalAmount || 0) - (l.paidAmount || 0)), 0);
+
+  const pendingLoansCount = loans.filter(l => l.status !== 'pagado').length;
+
   // Dinero General Total = Saldo Base Manual Inicial + Ingresos - Salidas
   const baseBalance = settings.manualBaseBalance || 0;
   const totalCalculado = baseBalance + totalIngresos - totalSalidas;
-
-  // Totales de préstamos
-  const totalMeDeben = loans
-    .filter(l => l.type === 'yo_preste' && l.status === 'pendiente')
-    .reduce((sum, l) => sum + (l.remainingAmount || 0), 0);
-
-  const totalYoDebo = loans
-    .filter(l => l.type === 'me_prestaron' && l.status === 'pendiente')
-    .reduce((sum, l) => sum + (l.remainingAmount || 0), 0);
 
   return (
     <VaultContext.Provider
@@ -1034,6 +1145,7 @@ export function VaultProvider({ children }) {
         loans,
         totalMeDeben,
         totalYoDebo,
+        pendingLoansCount,
         auditLogs,
         learnedPhrases,
         totpConfig,
@@ -1054,6 +1166,10 @@ export function VaultProvider({ children }) {
         softDeleteTransaction,
         restoreTransaction,
         permanentDeleteTransaction,
+        createLoan,
+        addLoanPayment,
+        addLoanExtraAmount,
+        deleteLoan,
         setManualBaseBalance,
         togglePrivacyMode,
         startTotpSetup,
@@ -1062,13 +1178,7 @@ export function VaultProvider({ children }) {
         exportEncryptedBackup,
         importEncryptedBackup,
         checkIntegrity,
-        resetInactivityTimer,
-
-        // Préstamos
-        addLoan,
-        addLoanAbono,
-        addLoanExtra,
-        deleteLoan
+        resetInactivityTimer
       }}
     >
       {children}

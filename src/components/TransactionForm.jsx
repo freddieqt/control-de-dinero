@@ -7,6 +7,7 @@ import {
   PRESET_PHRASES,
   normalizeText
 } from '../utils/presetPhrases';
+import { evaluateMathExpression } from '../utils/calcHelper';
 import {
   ArrowDownCircle,
   ArrowUpCircle,
@@ -18,27 +19,12 @@ import {
   Calculator
 } from 'lucide-react';
 
-function evaluateMath(expr) {
-  if (!expr) return null;
-  const clean = expr.trim();
-  // Validar que solo contenga números, puntos, espacios y operadores permitidos
-  if (!/^[0-9+\-*/. ()]+$/.test(clean)) return null;
-  try {
-    const result = Function(`"use strict"; return (${clean})`)();
-    if (typeof result === 'number' && !isNaN(result) && isFinite(result)) {
-      return Math.round(result * 100) / 100;
-    }
-  } catch (e) {
-    return null;
-  }
-  return null;
-}
-
 export default function TransactionForm() {
   const { addTransaction, settings, learnedPhrases } = useVault();
 
   const [type, setType] = useState('gasto'); // 'gasto' o 'ingreso'
   const [amount, setAmount] = useState('');
+  const [calcPreview, setCalcPreview] = useState(null);
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0]);
   const [paymentMethod, setPaymentMethod] = useState('Yape');
   const [description, setDescription] = useState('');
@@ -55,10 +41,6 @@ export default function TransactionForm() {
 
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
-
-  // Cálculo en vivo de la calculadora
-  const calculatedResult = evaluateMath(amount);
-  const hasMathOperator = /[+\-*/]/.test(amount);
 
   // Reloj en vivo
   useEffect(() => {
@@ -82,7 +64,19 @@ export default function TransactionForm() {
     return () => clearInterval(interval);
   }, []);
 
-  // Al alternar entre gasto e ingreso, actualizar categorías
+  // Evaluación en tiempo real para calculadora en el monto
+  useEffect(() => {
+    if (amount && /[+\-*/]/.test(amount)) {
+      const res = evaluateMathExpression(amount);
+      if (res !== null && !isNaN(res)) {
+        setCalcPreview(res);
+        return;
+      }
+    }
+    setCalcPreview(null);
+  }, [amount]);
+
+  // Al alternar entre gasto e ingreso, actualizar categorías correspondientes
   useEffect(() => {
     if (type === 'gasto') {
       setCategory(EXPENSE_CATEGORIES[0]);
@@ -91,7 +85,7 @@ export default function TransactionForm() {
     }
   }, [type]);
 
-  // Obtener todas las frases disponibles (las del usuario tienen prioridad)
+  // Obtener todas las frases disponibles (las del usuario tienen máxima prioridad)
   const getAllPhrases = () => {
     const customUserList = learnedPhrases
       .filter(p => p.type === type)
@@ -164,7 +158,20 @@ export default function TransactionForm() {
     }
   };
 
-  // Cerrar dropdown al hacer click fuera
+  // Aplicar resultado de la calculadora
+  const handleApplyCalc = () => {
+    if (calcPreview !== null) {
+      setAmount(calcPreview.toString());
+      setCalcPreview(null);
+    }
+  };
+
+  // Insertar operador matemático en el campo monto
+  const handleInsertOperator = (op) => {
+    setAmount(prev => (prev ? prev + ' ' + op + ' ' : ''));
+  };
+
+  // Cerrar dropdown al hacer click afuera
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
@@ -182,10 +189,15 @@ export default function TransactionForm() {
     e.preventDefault();
     setErrorMsg('');
 
-    // Resolver cálculo de calculadora si escribió una suma tipo 2.50 + 3
-    const finalAmount = calculatedResult !== null ? calculatedResult : parseFloat(amount);
+    // Si hay un cálculo pendiente, resolverlo
+    let finalAmount = null;
+    if (amount && /[+\-*/]/.test(amount)) {
+      finalAmount = evaluateMathExpression(amount);
+    } else {
+      finalAmount = parseFloat(amount);
+    }
 
-    if (isNaN(finalAmount) || finalAmount <= 0) {
+    if (!finalAmount || isNaN(finalAmount) || finalAmount <= 0) {
       setErrorMsg('Ingresa un monto válido mayor a 0');
       return;
     }
@@ -223,6 +235,7 @@ export default function TransactionForm() {
       setTimeout(() => setSuccessAnim(false), 2200);
 
       setAmount('');
+      setCalcPreview(null);
       setDescription('');
       setShowDropdown(false);
     } catch (err) {
@@ -305,7 +318,7 @@ export default function TransactionForm() {
             </div>
           </div>
 
-          {/* CUENTA / MEDIO DE PAGO */}
+          {/* MEDIO DE PAGO / CUENTA */}
           <div>
             <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5 flex items-center gap-1.5">
               <CreditCard className="w-4 h-4 text-indigo-400" />
@@ -330,18 +343,41 @@ export default function TransactionForm() {
           </div>
         </div>
 
-        {/* FILA 2: MONTO CON CALCULADORA MATEMÁTICA RÁPIDA */}
+        {/* FILA 2: MONTO CON CALCULADORA RÁPIDA INTEGRADA */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
               <Calculator className="w-4 h-4 text-emerald-400" />
               ¿Cuánto dinero es? ({settings.currency || 'S/.'})
             </label>
-            {hasMathOperator && calculatedResult !== null && (
-              <span className="text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-2 py-0.5 rounded-md">
-                = {settings.currency || 'S/.'} {calculatedResult.toFixed(2)}
-              </span>
-            )}
+
+            {/* Botones de cálculo rápido para móvil (+, -, *) */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => handleInsertOperator('+')}
+                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold flex items-center justify-center transition-colors"
+                title="Sumar"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                onClick={() => handleInsertOperator('-')}
+                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold flex items-center justify-center transition-colors"
+                title="Restar"
+              >
+                -
+              </button>
+              <button
+                type="button"
+                onClick={() => handleInsertOperator('*')}
+                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold flex items-center justify-center transition-colors"
+                title="Multiplicar"
+              >
+                ×
+              </button>
+            </div>
           </div>
 
           <div className="relative">
@@ -350,32 +386,35 @@ export default function TransactionForm() {
             </span>
             <input
               type="text"
-              placeholder="0.00 (puedes escribir 2.50 + 3)"
+              placeholder="0.00 (puedes escribir ej: 2.50 + 3)"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-12 pr-4 py-3 text-2xl font-bold text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+              onBlur={() => {
+                if (calcPreview !== null) {
+                  setAmount(calcPreview.toString());
+                  setCalcPreview(null);
+                }
+              }}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-12 pr-4 py-3 text-xl sm:text-2xl font-bold text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
               required
             />
           </div>
 
-          {/* Atajos de suma rápida para agregar dinero con un toque */}
-          <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-1">
-            <span className="text-xs text-slate-400 font-medium">Sumar:</span>
-            {[1, 2, 5, 10, 20].map((inc) => (
-              <button
-                key={inc}
-                type="button"
-                onClick={() => {
-                  const currentVal = calculatedResult !== null ? calculatedResult : parseFloat(amount);
-                  const base = isNaN(currentVal) ? 0 : currentVal;
-                  setAmount((base + inc).toFixed(2));
-                }}
-                className="text-xs px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition-colors"
-              >
-                + {inc}
-              </button>
-            ))}
-          </div>
+          {/* Cartel flotante de resultado de la calculadora */}
+          {calcPreview !== null && (
+            <div
+              onClick={handleApplyCalc}
+              className="mt-2 p-2.5 bg-emerald-950/80 border border-emerald-500/50 rounded-xl flex items-center justify-between text-xs sm:text-sm text-emerald-300 cursor-pointer hover:bg-emerald-900/60 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Calculator className="w-4 h-4 text-emerald-400" />
+                <span>Calculadora: <strong>= {settings.currency} {calcPreview.toFixed(2)}</strong></span>
+              </div>
+              <span className="text-[11px] bg-emerald-500/20 px-2 py-0.5 rounded font-bold text-emerald-200">
+                Toca para aplicar ↵
+              </span>
+            </div>
+          )}
         </div>
 
         {/* FILA 3: MOTIVO */}
@@ -400,7 +439,7 @@ export default function TransactionForm() {
             autoComplete="off"
           />
 
-          {/* Menú flotante de opciones */}
+          {/* Menú flotante de opciones para completar rápido */}
           {showDropdown && suggestions.length > 0 && (
             <div
               ref={dropdownRef}
