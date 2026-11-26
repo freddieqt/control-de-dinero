@@ -91,12 +91,6 @@ export function VaultProvider({ children }) {
         const device = await getDeviceFingerprint();
         setCurrentDevice(device);
 
-        // Limpieza automática única de datos de prueba para dejar la BD en S/. 0.00
-        if (!localStorage.getItem('__vault_test_cleaned_v2')) {
-          await clearAllMovementsAndLoans();
-          localStorage.setItem('__vault_test_cleaned_v2', '1');
-        }
-
         const auth = await getAuthData();
         if (auth && auth.salt && auth.authCheck) {
           setIsSetupDone(true);
