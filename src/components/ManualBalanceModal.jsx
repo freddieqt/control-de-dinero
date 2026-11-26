@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useVault } from '../context/VaultContext';
-import { Wallet, X, Check } from 'lucide-react';
+import { Wallet, X, Check, RotateCcw } from 'lucide-react';
 
 export default function ManualBalanceModal({ isOpen, onClose }) {
-  const { manualBaseBalance, setManualBaseBalance, settings } = useVault();
-  const [amount, setAmount] = useState(manualBaseBalance.toString());
+  const { totalBalance, setManualBaseBalance, clearAllRecordsToZero, settings } = useVault();
+  const [amount, setAmount] = useState('0');
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setAmount(Math.max(0, totalBalance || 0).toString());
+      setErrorMsg('');
+    }
+  }, [isOpen, totalBalance]);
 
   if (!isOpen) return null;
 
@@ -14,8 +21,8 @@ export default function ManualBalanceModal({ isOpen, onClose }) {
     e.preventDefault();
     setErrorMsg('');
     const val = parseFloat(amount);
-    if (isNaN(val)) {
-      setErrorMsg("Ingresa un número válido para tu dinero total.");
+    if (isNaN(val) || val < 0) {
+      setErrorMsg("Ingresa un número válido mayor o igual a 0.");
       return;
     }
 
@@ -25,6 +32,18 @@ export default function ManualBalanceModal({ isOpen, onClose }) {
       onClose();
     } catch (err) {
       setErrorMsg(err.message || "Error al actualizar saldo");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetAllToZero = async () => {
+    setSaving(true);
+    try {
+      await clearAllRecordsToZero();
+      onClose();
+    } catch (err) {
+      setErrorMsg(err.message || "Error al reiniciar datos");
     } finally {
       setSaving(false);
     }
@@ -59,7 +78,7 @@ export default function ManualBalanceModal({ isOpen, onClose }) {
         <form onSubmit={handleSave} className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              Escribe la cantidad exacta de dinero que tienes en total:
+              Escribe la cantidad exacta de dinero que tienes ahora:
             </label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-400">
@@ -67,6 +86,7 @@ export default function ManualBalanceModal({ isOpen, onClose }) {
               </span>
               <input
                 type="number"
+                min="0"
                 step="0.01"
                 inputMode="decimal"
                 value={amount}
@@ -77,12 +97,12 @@ export default function ManualBalanceModal({ isOpen, onClose }) {
                 required
               />
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2.5 leading-relaxed">
-              Este monto se guardará cifrado como tu saldo base. Cada salida que hagas se le restará y cada ingreso se le sumará automáticamente en tiempo real.
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+              Tu dinero general nunca bajará de 0.00 (no saldrán números negativos).
             </p>
           </div>
 
-          <div className="pt-2 flex gap-3">
+          <div className="pt-1 flex gap-3">
             <button
               type="button"
               onClick={onClose}
@@ -100,6 +120,19 @@ export default function ManualBalanceModal({ isOpen, onClose }) {
                   <Check className="w-5 h-5" /> Guardar Saldo
                 </>
               )}
+            </button>
+          </div>
+
+          {/* Botón directo para limpiar pruebas y dejar la BD en S/. 0.00 */}
+          <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={handleResetAllToZero}
+              disabled={saving}
+              className="w-full py-2.5 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/35 text-rose-600 dark:text-rose-300 font-bold text-xs flex items-center justify-center gap-2 transition-colors"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Limpiar registros de prueba y dejar todo en S/. 0.00</span>
             </button>
           </div>
         </form>

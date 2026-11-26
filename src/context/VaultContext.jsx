@@ -26,6 +26,7 @@ import {
   appendAuditLog,
   getStoredPhrases,
   saveLearnedPhrase,
+  clearAllMovementsAndLoans,
   wipeEntireDatabase
 } from '../storage/vaultDb';
 import { PRESET_PHRASES } from '../utils/presetPhrases';
@@ -89,6 +90,12 @@ export function VaultProvider({ children }) {
       try {
         const device = await getDeviceFingerprint();
         setCurrentDevice(device);
+
+        // Limpieza automática única de datos de prueba para dejar la BD en S/. 0.00
+        if (!localStorage.getItem('__vault_test_cleaned_v2')) {
+          await clearAllMovementsAndLoans();
+          localStorage.setItem('__vault_test_cleaned_v2', '1');
+        }
 
         const auth = await getAuthData();
         if (auth && auth.salt && auth.authCheck) {
@@ -612,13 +619,20 @@ export function VaultProvider({ children }) {
   };
 
   // 11. Ajustar Dinero General (Saldo Base Manual)
-  const setManualBaseBalance = async (newBaseAmount) => {
-    const val = parseFloat(newBaseAmount);
+  const setManualBaseBalance = async (newDesiredTotal) => {
+    const val = Math.max(0, parseFloat(newDesiredTotal));
     if (isNaN(val)) throw new Error("El saldo general debe ser un número válido.");
+
+    // Calcular los ingresos y salidas activos actuales para que el Dinero General quede exactamente en el monto ingresado
+    const currentActive = transactions.filter(t => !t.isDeleted);
+    const curIn = currentActive.filter(t => t.type === 'ingreso').reduce((s, t) => s + (t.amount || 0), 0);
+    const curOut = currentActive.filter(t => t.type === 'gasto').reduce((s, t) => s + (t.amount || 0), 0);
+    const compensatedBase = val - curIn + curOut;
 
     const newSettings = {
       ...settings,
-      manualBaseBalance: val,
+      manualBaseBalance: compensatedBase,
+      displayManualBase: val,
       hasManualBase: true
     };
 
@@ -631,6 +645,26 @@ export function VaultProvider({ children }) {
       timestamp: Date.now(),
       deviceId: currentDevice?.id || 'unknown',
       details: `Saldo total fijado manualmente en ${settings.currency} ${val.toFixed(2)}`,
+      status: 'OK'
+    });
+
+    setAuditLogs(await getAllAuditLogs());
+    resetInactivityTimer();
+  };
+
+  // 11b. Limpiar todos los registros de prueba y dejar todo en S/. 0.00
+  const clearAllRecordsToZero = async () => {
+    const resetSettings = await clearAllMovementsAndLoans();
+    setTransactions([]);
+    setLoans([]);
+    setSettings(resetSettings);
+
+    await appendAuditLog({
+      id: 'audit_' + Date.now(),
+      action: 'BD_LIMPIADA_A_CERO',
+      timestamp: Date.now(),
+      deviceId: currentDevice?.id || 'unknown',
+      details: 'Se limpiaron todos los movimientos y préstamos dejando el saldo en S/. 0.00',
       status: 'OK'
     });
 
@@ -1111,6 +1145,21 @@ export function VaultProvider({ children }) {
     const current = loans.find(l => l.id === loanId);
     await deleteStoredLoan(loanId);
 
+    // Si había movimientos sincronizados de este préstamo, eliminarlos también para que no alteren el saldo general
+    if (current && current.personName) {
+      const targetName = current.personName.toLowerCase();
+      const linkedTxs = transactions.filter(
+        t => t.category === 'Préstamos' && (t.description || '').toLowerCase().includes(targetName)
+      );
+      for (const tx of linkedTxs) {
+        await deleteStoredTransaction(tx.id);
+      }
+      if (linkedTxs.length > 0) {
+        const linkedIds = new Set(linkedTxs.map(t => t.id));
+        setTransactions(prev => prev.filter(t => !linkedIds.has(t.id)));
+      }
+    }
+
     await appendAuditLog({
       id: 'audit_' + Date.now(),
       action: 'PRESTAMO_ELIMINADO',
@@ -1144,9 +1193,11 @@ export function VaultProvider({ children }) {
 
   const pendingLoansCount = loans.filter(l => l.status !== 'pagado').length;
 
-  // Dinero General Total = Saldo Base Manual Inicial + Ingresos - Salidas
+  // Dinero General Total = Nunca menor a 0 (si no hay dinero, muestra 0.00 en vez de números negativos)
   const baseBalance = settings.manualBaseBalance || 0;
-  const totalCalculado = baseBalance + totalIngresos - totalSalidas;
+  const rawTotal = baseBalance + totalIngresos - totalSalidas;
+  const totalCalculado = Math.max(0, rawTotal);
+  const displayBase = settings.displayManualBase !== undefined ? Math.max(0, settings.displayManualBase) : Math.max(0, baseBalance);
 
   return (
     <VaultContext.Provider
@@ -1175,7 +1226,7 @@ export function VaultProvider({ children }) {
         totalBalance: totalCalculado,
         totalIngresos,
         totalSalidas,
-        manualBaseBalance: baseBalance,
+        manualBaseBalance: displayBase,
 
         // Acciones
         setupVault,
@@ -1191,6 +1242,7 @@ export function VaultProvider({ children }) {
         addLoanExtraAmount,
         deleteLoan,
         setManualBaseBalance,
+        clearAllRecordsToZero,
         togglePrivacyMode,
         startTotpSetup,
         confirmAndEnableTotp,

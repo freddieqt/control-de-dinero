@@ -167,6 +167,30 @@ export async function saveLearnedPhrase(phraseText, type) {
 }
 
 // ==========================================
+// LIMPIEZA DE MOVIMIENTOS Y PRÉSTAMOS (MANTIENE CONTRASEÑA)
+// ==========================================
+
+export async function clearAllMovementsAndLoans() {
+  const db = await getDb();
+  await db.clear('transactions');
+  if (db.objectStoreNames.contains('loans')) {
+    await db.clear('loans');
+  }
+  const currentSettings = (await db.get('auth', 'settings')) || {
+    autoLockMinutes: 2,
+    currency: 'S/.',
+    privacyMode: false
+  };
+  const resetSettings = {
+    ...currentSettings,
+    manualBaseBalance: 0,
+    hasManualBase: false
+  };
+  await db.put('auth', resetSettings, 'settings');
+  return resetSettings;
+}
+
+// ==========================================
 // REINICIO TOTAL DE EMERGENCIA
 // ==========================================
 
